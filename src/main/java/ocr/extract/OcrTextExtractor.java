@@ -25,6 +25,11 @@ public class OcrTextExtractor implements TextExtractor {
         tesseract.setPageSegMode(ITessAPI.TessPageSegMode.PSM_AUTO);
     }
 
+    /** Package-private constructor for testing — allows injecting a pre-configured Tesseract. */
+    OcrTextExtractor(Tesseract tesseract) {
+        this.tesseract = tesseract;
+    }
+
     @Override
     public List<WordOccurrence> extract(PDDocument document, int pageIndex) throws IOException {
         PDFRenderer renderer = new PDFRenderer(document);
