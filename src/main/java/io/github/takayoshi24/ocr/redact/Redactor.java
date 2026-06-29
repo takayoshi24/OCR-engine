@@ -4,7 +4,6 @@ import io.github.takayoshi24.ocr.find.RedactionTarget;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -22,7 +21,6 @@ public class Redactor {
         for (Map.Entry<Integer, List<RedactionTarget>> entry : byPage.entrySet()) {
             int pageIndex = entry.getKey();
             PDPage page = document.getPage(pageIndex);
-            float pageHeight = page.getMediaBox().getHeight();
 
             try (PDPageContentStream cs = new PDPageContentStream(
                     document, page, PDPageContentStream.AppendMode.APPEND, true, true)) {
@@ -30,16 +28,10 @@ public class Redactor {
                 cs.setNonStrokingColor(Color.BLACK);
 
                 for (RedactionTarget target : entry.getValue()) {
-                    float x = target.occurrence.x;
-                    float w = target.occurrence.width;
-                    // occurrence.y is the baseline measured from the top of the page.
-                    // PDFBox content stream uses bottom-left origin, so baseline in PDF Y =
-                    // pageHeight - occurrence.y. Characters sit above the baseline (~75%) with
-                    // descenders below (~25%), so offset down by 25% and extend up by full height.
-                    float h = target.occurrence.height;
-                    float y = pageHeight - target.occurrence.y - h * 0.25f;
-
-                    cs.addRect(x, y, w, h);
+                    // occurrence.y and occurrence.height are already in PDF coords
+                    // (Y from page bottom), produced consistently by both extractors.
+                    cs.addRect(target.occurrence.x, target.occurrence.y,
+                               target.occurrence.width, target.occurrence.height);
                     cs.fill();
                 }
             }
