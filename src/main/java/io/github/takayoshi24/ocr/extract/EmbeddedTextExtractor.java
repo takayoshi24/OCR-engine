@@ -1,11 +1,11 @@
 package io.github.takayoshi24.ocr.extract;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +14,12 @@ public class EmbeddedTextExtractor implements TextExtractor {
     @Override
     public List<WordOccurrence> extract(PDDocument document, int pageIndex) throws IOException {
         List<WordOccurrence> results = new ArrayList<>();
+
+        // In PDFBox 2.x, TextPosition.getY() stores reading-order Y from the top
+        // (not PDF Y from the bottom). To recover the PDF baseline Y from the bottom
+        // we compute: pageH - pos.getY().
+        PDPage page = document.getPage(pageIndex);
+        final float pageH = page.getBBox().getHeight();
 
         PDFTextStripper stripper = new PDFTextStripper() {
             private final StringBuilder wordBuffer = new StringBuilder();
@@ -28,10 +34,11 @@ public class EmbeddedTextExtractor implements TextExtractor {
                     } else {
                         if (wordBuffer.isEmpty()) {
                             wordX = pos.getXDirAdj();
-                            // Store PDF Y from bottom. pos.getY() is the baseline from page
-                            // bottom; shift down 20% of height to cover descenders (g, p, y…).
-                            wordY = pos.getY() - pos.getHeightDir() * 0.2f;
-                            wordHeight = pos.getHeightDir() * 1.2f;
+                            // pageH - pos.getY() = PDF baseline Y from bottom.
+                            // Shift down 30% of glyph height to cover descenders.
+                            float baselineY = pageH - pos.getY();
+                            wordY = baselineY - pos.getHeightDir() * 0.3f;
+                            wordHeight = pos.getHeightDir() * 1.5f;
                             wordWidth = 0;
                         }
                         wordBuffer.append(c);

@@ -56,6 +56,12 @@ class EmbeddedTextExtractorTest {
             assertTrue(w.y > 0,      "y should be positive");
             assertTrue(w.width > 0,  "width should be positive");
             assertTrue(w.height > 0, "height should be positive");
+
+            // Text placed at newLineAtOffset(50, 700) on 792pt Letter page.
+            // occurrence.y is PDF Y from bottom via getYDirAdj() — should be near 700,
+            // not near 92 (which would be reading-order from top).
+            assertTrue(w.y > 500,
+                    "y should be PDF coords (bottom=0), expected ~700 but got " + w.y);
         }
     }
 
