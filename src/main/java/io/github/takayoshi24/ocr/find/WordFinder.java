@@ -29,7 +29,7 @@ public class WordFinder {
 
         for (WordOccurrence occ : occurrences) {
             for (int i = 0; i < patterns.size(); i++) {
-                if (patterns.get(i).matcher(occ.word).matches()) {
+                if (patterns.get(i).matcher(occ.word).find()) {
                     results.add(new RedactionTarget(occ, targets.get(i)));
                     break;
                 }
@@ -41,8 +41,10 @@ public class WordFinder {
 
     private Pattern toPattern(String target) {
         return switch (mode) {
-            case EXACT -> Pattern.compile(Pattern.quote(target));
-            case CASE_INSENSITIVE -> Pattern.compile(Pattern.quote(target), Pattern.CASE_INSENSITIVE);
+            // \b anchors match at a word/non-word boundary, so "John" matches "John,"
+            // but not "Johnson"
+            case EXACT -> Pattern.compile("\\b" + Pattern.quote(target) + "\\b");
+            case CASE_INSENSITIVE -> Pattern.compile("\\b" + Pattern.quote(target) + "\\b", Pattern.CASE_INSENSITIVE);
             case REGEX -> Pattern.compile(target);
         };
     }
