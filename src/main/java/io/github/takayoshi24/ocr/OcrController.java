@@ -27,14 +27,24 @@ import java.util.List;
 @RestController
 public class OcrController {
 
+    // Re-using a single CompositeExtractor avoids reloading Tesseract language
+    // data (≈50 MB) on every request.
+    private final CompositeExtractor extractor;
+    private final PdfLoader loader = new PdfLoader();
+    private final Redactor redactor = new Redactor();
+
+    public OcrController() {
+        String tessData = System.getenv().getOrDefault("TESSDATA_PREFIX", "tessdata");
+        extractor = new CompositeExtractor(
+                new EmbeddedTextExtractor(), new OcrTextExtractor(tessData));
+    }
+
     @PostMapping(value = "/api/process", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> process(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "words", defaultValue = "") String words,
             @RequestParam(value = "mode", defaultValue = "CASE_INSENSITIVE") String mode
     ) throws Exception {
-
-        String tessData = System.getenv().getOrDefault("TESSDATA_PREFIX", "tessdata");
 
         Path tempInput = Files.createTempFile("ocr-", ".pdf");
         try {
@@ -52,11 +62,7 @@ public class OcrController {
                 matchMode = WordFinder.MatchMode.CASE_INSENSITIVE;
             }
 
-            PdfLoader loader = new PdfLoader();
-            CompositeExtractor extractor = new CompositeExtractor(
-                    new EmbeddedTextExtractor(), new OcrTextExtractor(tessData));
             WordFinder finder = new WordFinder(matchMode);
-            Redactor redactor = new Redactor();
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try (PdfDocument doc = loader.load(tempInput)) {
@@ -69,7 +75,9 @@ public class OcrController {
             }
 
             String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "output.pdf";
-            String filename = "redacted_" + original;
+            // Strip control characters and quotes to prevent header injection.
+            String safe = original.replaceAll("[\\r\\n\"]", "_");
+            String filename = "redacted_" + safe;
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
@@ -83,8 +91,9 @@ public class OcrController {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleError(Exception e) {
+        String msg = e.getMessage();
         return ResponseEntity.internalServerError()
                 .contentType(MediaType.TEXT_PLAIN)
-                .body(e.getMessage());
+                .body(msg != null ? msg : e.getClass().getSimpleName());
     }
 }

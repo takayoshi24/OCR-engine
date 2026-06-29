@@ -79,7 +79,11 @@ public class WordFinder {
             // but not "Johnson"
             case EXACT -> Pattern.compile("\\b" + Pattern.quote(target) + "\\b");
             case CASE_INSENSITIVE -> Pattern.compile("\\b" + Pattern.quote(target) + "\\b", Pattern.CASE_INSENSITIVE);
-            case REGEX -> Pattern.compile(target);
+            // Limit regex length to reduce ReDoS exposure.
+            case REGEX -> {
+                if (target.length() > 200) throw new IllegalArgumentException("Regex pattern too long: " + target);
+                yield Pattern.compile(target);
+            }
         };
     }
 }
