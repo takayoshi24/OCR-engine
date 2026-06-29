@@ -15,8 +15,13 @@ public class PdfLoader {
 
     public PdfDocument load(Path path) throws IOException {
         PDDocument pdDocument = PDDocument.load(path.toFile());
-        List<PageType> pageTypes = classifyPages(pdDocument);
-        return new PdfDocument(pdDocument, pageTypes);
+        try {
+            List<PageType> pageTypes = classifyPages(pdDocument);
+            return new PdfDocument(pdDocument, pageTypes);
+        } catch (IOException e) {
+            pdDocument.close();
+            throw e;
+        }
     }
 
     private List<PageType> classifyPages(PDDocument document) throws IOException {

@@ -36,8 +36,8 @@ public class OcrTextExtractor implements TextExtractor {
         BufferedImage image = renderer.renderImageWithDPI(pageIndex, DPI, ImageType.GRAY);
 
         PDPage page = document.getPage(pageIndex);
-        float pageHeightPt = page.getMediaBox().getHeight();
-        float pageWidthPt = page.getMediaBox().getWidth();
+        float pageHeightPt = page.getBBox().getHeight();
+        float pageWidthPt = page.getBBox().getWidth();
         float scaleX = pageWidthPt / image.getWidth();
         float scaleY = pageHeightPt / image.getHeight();
 
@@ -50,12 +50,14 @@ public class OcrTextExtractor implements TextExtractor {
 
         List<WordOccurrence> results = new ArrayList<>();
         for (Word word : words) {
+            String text = word.getText().trim();
+            if (text.isEmpty()) continue;
             java.awt.Rectangle r = word.getBoundingBox();
             float x = r.x * scaleX;
             float y = pageHeightPt - (r.y + r.height) * scaleY; // flip Y axis to PDF coords
             float w = r.width * scaleX;
             float h = r.height * scaleY;
-            results.add(new WordOccurrence(word.getText().trim(), pageIndex, x, y, w, h));
+            results.add(new WordOccurrence(text, pageIndex, x, y, w, h));
         }
 
         return results;
