@@ -31,10 +31,13 @@ public class Redactor {
 
                 for (RedactionTarget target : entry.getValue()) {
                     float x = target.occurrence.x;
-                    // PDFBox Y origin is bottom-left; our Y is top-left, so flip
-                    float y = pageHeight - target.occurrence.y - target.occurrence.height;
                     float w = target.occurrence.width;
+                    // occurrence.y is the baseline measured from the top of the page.
+                    // PDFBox content stream uses bottom-left origin, so baseline in PDF Y =
+                    // pageHeight - occurrence.y. Characters sit above the baseline (~75%) with
+                    // descenders below (~25%), so offset down by 25% and extend up by full height.
                     float h = target.occurrence.height;
+                    float y = pageHeight - target.occurrence.y - h * 0.25f;
 
                     cs.addRect(x, y, w, h);
                     cs.fill();
