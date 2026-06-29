@@ -28,8 +28,10 @@ public class EmbeddedTextExtractor implements TextExtractor {
                     } else {
                         if (wordBuffer.isEmpty()) {
                             wordX = pos.getXDirAdj();
-                            wordY = pos.getYDirAdj();
-                            wordHeight = pos.getHeightDir();
+                            // Store PDF Y from bottom. pos.getY() is the baseline from page
+                            // bottom; shift down 20% of height to cover descenders (g, p, y…).
+                            wordY = pos.getY() - pos.getHeightDir() * 0.2f;
+                            wordHeight = pos.getHeightDir() * 1.2f;
                             wordWidth = 0;
                         }
                         wordBuffer.append(c);
