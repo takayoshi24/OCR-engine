@@ -4,11 +4,13 @@ import io.github.takayoshi24.ocr.extract.EmbeddedTextExtractor;
 import io.github.takayoshi24.ocr.extract.WordOccurrence;
 import io.github.takayoshi24.ocr.find.RedactionTarget;
 import io.github.takayoshi24.ocr.find.WordFinder;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -39,7 +41,7 @@ class RedactorEndToEndTest {
         doc.addPage(page);
         try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
             cs.beginText();
-            cs.setFont(PDType1Font.HELVETICA, 12);
+            cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
             cs.newLineAtOffset(50, 700);
             cs.showText(text);       // ONE Tj for the whole string
             cs.endText();
@@ -53,7 +55,7 @@ class RedactorEndToEndTest {
         doc.addPage(page);
         try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
             cs.beginText();
-            cs.setFont(PDType1Font.HELVETICA, 12);
+            cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
             cs.newLineAtOffset(50, 700);
             for (String w : words) {
                 cs.showText(w); // consecutive Tj calls without Td between them
@@ -81,7 +83,7 @@ class RedactorEndToEndTest {
             redactor.redact(doc, targets);
             doc.save(out.toFile());
         }
-        try (PDDocument reloaded = PDDocument.load(out.toFile())) {
+        try (PDDocument reloaded = Loader.loadPDF(out.toFile())) {
             String text = new PDFTextStripper().getText(reloaded);
             System.out.println("[e2e-single] after redact: '" + text.trim() + "'");
             assertTrue(text.contains("Hello"),   "Hello must stay selectable");
@@ -107,7 +109,7 @@ class RedactorEndToEndTest {
             redactor.redact(doc, targets);
             doc.save(out.toFile());
         }
-        try (PDDocument reloaded = PDDocument.load(out.toFile())) {
+        try (PDDocument reloaded = Loader.loadPDF(out.toFile())) {
             String text = new PDFTextStripper().getText(reloaded);
             System.out.println("[e2e-multi] after redact: '" + text.trim() + "'");
             assertTrue(text.contains("Hello"),   "Hello must stay selectable");

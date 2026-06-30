@@ -54,8 +54,7 @@ public class Redactor {
     private void filterPageContent(PDDocument document, PDPage page, List<WordOccurrence> zones)
             throws IOException {
         PDFStreamParser parser = new PDFStreamParser(page);
-        parser.parse();
-        List<Object> tokens = parser.getTokens();
+        List<Object> tokens = parser.parse();
         parser.close();
 
         List<Object> filtered = new ArrayList<>(tokens.size());

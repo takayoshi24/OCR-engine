@@ -1,5 +1,6 @@
 package io.github.takayoshi24.ocr.loader;
 
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
@@ -14,7 +15,7 @@ public class PdfLoader {
     private static final int TEXT_THRESHOLD = 10;
 
     public PdfDocument load(Path path) throws IOException {
-        PDDocument pdDocument = PDDocument.load(path.toFile());
+        PDDocument pdDocument = Loader.loadPDF(path.toFile());
         try {
             List<PageType> pageTypes = classifyPages(pdDocument);
             return new PdfDocument(pdDocument, pageTypes);

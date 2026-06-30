@@ -1,5 +1,6 @@
 package io.github.takayoshi24.ocr.export;
 
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class PdfExporterTest {
         }
 
         assertDoesNotThrow(() -> {
-            try (PDDocument reloaded = PDDocument.load(outputPath.toFile())) {
+            try (PDDocument reloaded = Loader.loadPDF(outputPath.toFile())) {
                 assertNotNull(reloaded);
             }
         }, "Reloading the exported file should not throw any exception");
@@ -60,7 +61,7 @@ class PdfExporterTest {
             exporter.export(doc, outputPath);
         }
 
-        try (PDDocument reloaded = PDDocument.load(outputPath.toFile())) {
+        try (PDDocument reloaded = Loader.loadPDF(outputPath.toFile())) {
             assertEquals(2, reloaded.getNumberOfPages(), "Reloaded document should have 2 pages");
         }
     }
@@ -87,7 +88,7 @@ class PdfExporterTest {
 
         // File should still be a valid PDF after overwrite
         assertDoesNotThrow(() -> {
-            try (PDDocument reloaded = PDDocument.load(outputPath.toFile())) {
+            try (PDDocument reloaded = Loader.loadPDF(outputPath.toFile())) {
                 assertNotNull(reloaded);
             }
         }, "File should still be valid after overwrite");
