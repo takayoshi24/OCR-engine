@@ -59,7 +59,10 @@ public class OcrController {
             try {
                 matchMode = WordFinder.MatchMode.valueOf(mode);
             } catch (IllegalArgumentException e) {
-                matchMode = WordFinder.MatchMode.CASE_INSENSITIVE;
+                return ResponseEntity.badRequest()
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body(("Invalid mode '" + mode + "'. Valid values: "
+                                + Arrays.toString(WordFinder.MatchMode.values())).getBytes());
             }
 
             WordFinder finder = new WordFinder(matchMode);
