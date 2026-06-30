@@ -12,6 +12,9 @@ import java.util.List;
 
 class CharacterRedactor {
 
+    private static final float PAD_X = 2f;
+    private static final float PAD_Y = 8f;
+
     /**
      * Walk a Tj string character-by-character.  Characters whose user-space X falls
      * inside a redaction zone are replaced with a TJ numeric advance (so surrounding
@@ -26,13 +29,7 @@ class CharacterRedactor {
         if (font == null) {
             float avgAdv = 0.5f * fontSize * tm[0] * (th / 100f);
             float totalAdv = raw.length * avgAdv;
-            boolean overlap = false;
-            for (WordOccurrence z : zones) {
-                if (tm[4] + totalAdv >= z.x() && tm[4] <= z.x() + z.width()
-                 && tm[5] >= z.y() - 8f && tm[5] <= z.y() + z.height() + 8f) {
-                    overlap = true; break;
-                }
-            }
+            boolean overlap = inZone(tm[4], tm[5], zones);
             tm[4] += totalAdv;
             return overlap ? List.of() : List.of(str, Operator.getOperator("Tj"));
         }
@@ -79,13 +76,7 @@ class CharacterRedactor {
                               float tc, float tw, float th,
                               float[] tm, List<WordOccurrence> zones) {
         if (font == null) {
-            boolean anyOverlap = false;
-            for (WordOccurrence z : zones) {
-                if (tm[5] >= z.y() - 8f && tm[5] <= z.y() + z.height() + 8f
-                 && tm[4] <= z.x() + z.width() && inZone(tm[4], tm[5], zones)) {
-                    anyOverlap = true; break;
-                }
-            }
+            boolean anyOverlap = inZone(tm[4], tm[5], zones);
             int charCount = arr.size();
             tm[4] += charCount * 0.5f * fontSize * tm[0] * (th / 100f);
             return anyOverlap ? List.of() : List.of(arr, Operator.getOperator("TJ"));
@@ -138,10 +129,9 @@ class CharacterRedactor {
     }
 
     private boolean inZone(float x, float y, List<WordOccurrence> zones) {
-        final float padX = 2f, padY = 8f;
         for (WordOccurrence z : zones) {
-            if (x >= z.x() - padX && x < z.x() + z.width() + padX
-             && y >= z.y() - padY && y <= z.y() + z.height() + padY) {
+            if (x >= z.x() - PAD_X && x < z.x() + z.width() + PAD_X
+             && y >= z.y() - PAD_Y && y <= z.y() + z.height() + PAD_Y) {
                 return true;
             }
         }
