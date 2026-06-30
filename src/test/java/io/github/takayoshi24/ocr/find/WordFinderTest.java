@@ -25,8 +25,8 @@ class WordFinderTest {
         List<RedactionTarget> results = finder.find(List.of(occ("Hello")), List.of("Hello"));
 
         assertEquals(1, results.size());
-        assertEquals("Hello", results.get(0).occurrence.word);
-        assertEquals("Hello", results.get(0).matchedPattern);
+        assertEquals("Hello", results.get(0).occurrence().word());
+        assertEquals("Hello", results.get(0).matchedPattern());
     }
 
     @Test
@@ -56,7 +56,7 @@ class WordFinderTest {
         List<RedactionTarget> results = finder.find(List.of(occ("HELLO")), List.of("hello"));
 
         assertEquals(1, results.size());
-        assertEquals("hello", results.get(0).matchedPattern);
+        assertEquals("hello", results.get(0).matchedPattern());
     }
 
     @Test
@@ -65,7 +65,7 @@ class WordFinderTest {
         List<RedactionTarget> results = finder.find(List.of(occ("hello")), List.of("HELLO"));
 
         assertEquals(1, results.size());
-        assertEquals("HELLO", results.get(0).matchedPattern);
+        assertEquals("HELLO", results.get(0).matchedPattern());
     }
 
     // -----------------------------------------------------------------------
@@ -78,7 +78,7 @@ class WordFinderTest {
         List<RedactionTarget> results = finder.find(List.of(occ("12345")), List.of("\\d+"));
 
         assertEquals(1, results.size());
-        assertEquals("\\d+", results.get(0).matchedPattern);
+        assertEquals("\\d+", results.get(0).matchedPattern());
     }
 
     @Test
@@ -102,7 +102,7 @@ class WordFinderTest {
         );
 
         assertEquals(1, results.size());
-        assertEquals("Bar", results.get(0).matchedPattern);
+        assertEquals("Bar", results.get(0).matchedPattern());
     }
 
     // -----------------------------------------------------------------------
@@ -140,6 +140,6 @@ class WordFinderTest {
 
         assertEquals(1, results.size());
         // The first pattern wins
-        assertEquals("\\w+", results.get(0).matchedPattern);
+        assertEquals("\\w+", results.get(0).matchedPattern());
     }
 }

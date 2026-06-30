@@ -28,8 +28,8 @@ class CharacterRedactor {
             float totalAdv = raw.length * avgAdv;
             boolean overlap = false;
             for (WordOccurrence z : zones) {
-                if (tm[4] + totalAdv >= z.x && tm[4] <= z.x + z.width
-                 && tm[5] >= z.y - 8f && tm[5] <= z.y + z.height + 8f) {
+                if (tm[4] + totalAdv >= z.x() && tm[4] <= z.x() + z.width()
+                 && tm[5] >= z.y() - 8f && tm[5] <= z.y() + z.height() + 8f) {
                     overlap = true; break;
                 }
             }
@@ -81,8 +81,8 @@ class CharacterRedactor {
         if (font == null) {
             boolean anyOverlap = false;
             for (WordOccurrence z : zones) {
-                if (tm[5] >= z.y - 8f && tm[5] <= z.y + z.height + 8f
-                 && tm[4] <= z.x + z.width && inZone(tm[4], tm[5], zones)) {
+                if (tm[5] >= z.y() - 8f && tm[5] <= z.y() + z.height() + 8f
+                 && tm[4] <= z.x() + z.width() && inZone(tm[4], tm[5], zones)) {
                     anyOverlap = true; break;
                 }
             }
@@ -140,8 +140,8 @@ class CharacterRedactor {
     private boolean inZone(float x, float y, List<WordOccurrence> zones) {
         final float padX = 2f, padY = 8f;
         for (WordOccurrence z : zones) {
-            if (x >= z.x - padX && x < z.x + z.width + padX
-             && y >= z.y - padY && y <= z.y + z.height + padY) {
+            if (x >= z.x() - padX && x < z.x() + z.width() + padX
+             && y >= z.y() - padY && y <= z.y() + z.height() + padY) {
                 return true;
             }
         }

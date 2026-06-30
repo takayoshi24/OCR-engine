@@ -74,7 +74,7 @@ class RedactorEndToEndTest {
             List<WordOccurrence> words = extractor.extract(doc, 0);
             System.out.println("[e2e-single] extracted words:");
             words.forEach(w -> System.out.printf("  '%s'  x=%.1f y=%.1f w=%.1f h=%.1f%n",
-                    w.word, w.x, w.y, w.width, w.height));
+                    w.word(), w.x(), w.y(), w.width(), w.height()));
 
             List<RedactionTarget> targets = finder.find(words, List.of("secret"));
             System.out.println("[e2e-single] redaction targets: " + targets.size());
@@ -101,7 +101,7 @@ class RedactorEndToEndTest {
             List<WordOccurrence> words = extractor.extract(doc, 0);
             System.out.println("[e2e-multi] extracted words:");
             words.forEach(w -> System.out.printf("  '%s'  x=%.1f y=%.1f w=%.1f h=%.1f%n",
-                    w.word, w.x, w.y, w.width, w.height));
+                    w.word(), w.x(), w.y(), w.width(), w.height()));
 
             List<RedactionTarget> targets = finder.find(words, List.of("secret"));
             assertFalse(targets.isEmpty(), "should find 'secret'");
