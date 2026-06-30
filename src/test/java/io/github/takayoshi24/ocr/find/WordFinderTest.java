@@ -89,6 +89,21 @@ class WordFinderTest {
         assertTrue(results.isEmpty());
     }
 
+    @Test
+    void regex_patternOver200Chars_throwsIllegalArgumentException() {
+        WordFinder finder = new WordFinder(MatchMode.REGEX);
+        String longPattern = "a".repeat(201);
+        assertThrows(IllegalArgumentException.class,
+                () -> finder.find(List.of(occ("a")), List.of(longPattern)));
+    }
+
+    @Test
+    void regex_patternExactly200Chars_isAccepted() {
+        WordFinder finder = new WordFinder(MatchMode.REGEX);
+        String pattern = "a".repeat(200);
+        assertDoesNotThrow(() -> finder.find(List.of(occ("a")), List.of(pattern)));
+    }
+
     // -----------------------------------------------------------------------
     // Multiple targets
     // -----------------------------------------------------------------------
