@@ -30,13 +30,23 @@ public class OcrController {
     // Re-using a single CompositeExtractor avoids reloading Tesseract language
     // data (≈50 MB) on every request.
     private final CompositeExtractor extractor;
-    private final PdfLoader loader = new PdfLoader();
-    private final Redactor redactor = new Redactor();
+    private final PdfLoader loader;
+    private final Redactor redactor;
+
+    OcrController(CompositeExtractor extractor, PdfLoader loader, Redactor redactor) {
+        this.extractor = extractor;
+        this.loader    = loader;
+        this.redactor  = redactor;
+    }
 
     public OcrController() {
-        String tessData = System.getenv().getOrDefault("TESSDATA_PREFIX", "tessdata");
-        extractor = new CompositeExtractor(
-                new EmbeddedTextExtractor(), new OcrTextExtractor(tessData));
+        this(
+            new CompositeExtractor(
+                new EmbeddedTextExtractor(),
+                new OcrTextExtractor(System.getenv().getOrDefault("TESSDATA_PREFIX", "tessdata"))),
+            new PdfLoader(),
+            new Redactor()
+        );
     }
 
     @PostMapping(value = "/api/process", produces = MediaType.APPLICATION_PDF_VALUE)
