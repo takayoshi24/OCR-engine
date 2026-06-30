@@ -72,12 +72,7 @@ class RedactorEndToEndTest {
         Path out = tempDir.resolve("e2e-single.pdf");
         try (PDDocument doc = buildSingleTjPage("Hello secret World")) {
             List<WordOccurrence> words = extractor.extract(doc, 0);
-            System.out.println("[e2e-single] extracted words:");
-            words.forEach(w -> System.out.printf("  '%s'  x=%.1f y=%.1f w=%.1f h=%.1f%n",
-                    w.word(), w.x(), w.y(), w.width(), w.height()));
-
             List<RedactionTarget> targets = finder.find(words, List.of("secret"));
-            System.out.println("[e2e-single] redaction targets: " + targets.size());
             assertFalse(targets.isEmpty(), "should find 'secret'");
 
             redactor.redact(doc, targets);
@@ -85,7 +80,6 @@ class RedactorEndToEndTest {
         }
         try (PDDocument reloaded = Loader.loadPDF(out.toFile())) {
             String text = new PDFTextStripper().getText(reloaded);
-            System.out.println("[e2e-single] after redact: '" + text.trim() + "'");
             assertTrue(text.contains("Hello"),   "Hello must stay selectable");
             assertTrue(text.contains("World"),   "World must stay selectable");
             assertFalse(text.contains("secret"), "secret must be gone");
@@ -99,10 +93,6 @@ class RedactorEndToEndTest {
         Path out = tempDir.resolve("e2e-multi.pdf");
         try (PDDocument doc = buildMultiTjPage("Hello ", "secret", " World")) {
             List<WordOccurrence> words = extractor.extract(doc, 0);
-            System.out.println("[e2e-multi] extracted words:");
-            words.forEach(w -> System.out.printf("  '%s'  x=%.1f y=%.1f w=%.1f h=%.1f%n",
-                    w.word(), w.x(), w.y(), w.width(), w.height()));
-
             List<RedactionTarget> targets = finder.find(words, List.of("secret"));
             assertFalse(targets.isEmpty(), "should find 'secret'");
 
@@ -111,7 +101,6 @@ class RedactorEndToEndTest {
         }
         try (PDDocument reloaded = Loader.loadPDF(out.toFile())) {
             String text = new PDFTextStripper().getText(reloaded);
-            System.out.println("[e2e-multi] after redact: '" + text.trim() + "'");
             assertTrue(text.contains("Hello"),   "Hello must stay selectable");
             assertTrue(text.contains("World"),   "World must stay selectable");
             assertFalse(text.contains("secret"), "secret must be gone");
