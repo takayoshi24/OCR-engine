@@ -15,47 +15,50 @@ class CharacterRedactor {
     private static final float PAD_X = 2f;
     private static final float PAD_Y = 8f;
 
+    record RedactResult(List<Object> tokens, float newX) {}
+
     private record ScanResult(COSArray out, float xAfter, boolean changed) {}
 
     /**
-     * Walk a Tj string character-by-character.  Characters whose user-space X falls
+     * Walk a Tj string character-by-character. Characters whose user-space X falls
      * inside a redaction zone are replaced with a TJ numeric advance (so surrounding
-     * text stays correctly positioned).  tm[4] is updated to the post-Tj X position
-     * so that the NEXT text operator starts tracking from the right place.
+     * text stays correctly positioned). Returns the updated X position in the result
+     * rather than mutating tm[4] — the caller is responsible for assigning it.
      */
-    List<Object> redactString(COSString str, PDFont font, float fontSize,
+    RedactResult redactString(COSString str, PDFont font, float fontSize,
                               float tc, float tw, float th,
                               float[] tm, List<WordOccurrence> zones) {
         byte[] raw = str.getBytes();
 
         if (font == null) {
             float avgAdv = 0.5f * fontSize * tm[0] * (th / 100f);
-            float totalAdv = raw.length * avgAdv;
+            float newX = tm[4] + raw.length * avgAdv;
             boolean overlap = inZone(tm[4], tm[5], zones);
-            tm[4] += totalAdv;
-            return overlap ? List.of() : List.of(str, Operator.getOperator("Tj"));
+            return new RedactResult(overlap ? List.of() : List.of(str, Operator.getOperator("Tj")), newX);
         }
 
         ScanResult result = scanString(raw, font, fontSize, tc, tw, th, tm[0], tm[4], tm[5], zones);
-        tm[4] = result.xAfter();
 
-        if (!result.changed()) return List.of(str, Operator.getOperator("Tj"));
-        if (result.out().size() == 0) return List.of();
-        return List.of(result.out(), Operator.getOperator("TJ"));
+        List<Object> tokens;
+        if (!result.changed()) tokens = List.of(str, Operator.getOperator("Tj"));
+        else if (result.out().size() == 0) tokens = List.of();
+        else tokens = List.of(result.out(), Operator.getOperator("TJ"));
+
+        return new RedactResult(tokens, result.xAfter());
     }
 
     /**
      * Same as redactString but handles an existing TJ array whose numeric elements
-     * are inter-glyph spacing adjustments (kept unchanged).
+     * are inter-glyph spacing adjustments (kept unchanged). Returns the updated X
+     * position in the result — the caller is responsible for assigning it.
      */
-    List<Object> redactArray(COSArray arr, PDFont font, float fontSize,
-                              float tc, float tw, float th,
-                              float[] tm, List<WordOccurrence> zones) {
+    RedactResult redactArray(COSArray arr, PDFont font, float fontSize,
+                             float tc, float tw, float th,
+                             float[] tm, List<WordOccurrence> zones) {
         if (font == null) {
             boolean anyOverlap = inZone(tm[4], tm[5], zones);
-            int charCount = arr.size();
-            tm[4] += charCount * 0.5f * fontSize * tm[0] * (th / 100f);
-            return anyOverlap ? List.of() : List.of(arr, Operator.getOperator("TJ"));
+            float newX = tm[4] + arr.size() * 0.5f * fontSize * tm[0] * (th / 100f);
+            return new RedactResult(anyOverlap ? List.of() : List.of(arr, Operator.getOperator("TJ")), newX);
         }
 
         COSArray out = new COSArray();
@@ -76,11 +79,12 @@ class CharacterRedactor {
             }
         }
 
-        tm[4] = x;
+        List<Object> tokens;
+        if (!changed) tokens = List.of(arr, Operator.getOperator("TJ"));
+        else if (out.size() == 0) tokens = List.of();
+        else tokens = List.of(out, Operator.getOperator("TJ"));
 
-        if (!changed) return List.of(arr, Operator.getOperator("TJ"));
-        if (out.size() == 0) return List.of();
-        return List.of(out, Operator.getOperator("TJ"));
+        return new RedactResult(tokens, x);
     }
 
     private ScanResult scanString(byte[] raw, PDFont font, float fontSize,
