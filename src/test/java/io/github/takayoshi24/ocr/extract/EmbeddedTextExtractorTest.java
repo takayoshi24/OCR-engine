@@ -1,10 +1,7 @@
 package io.github.takayoshi24.ocr.extract;
 
+import io.github.takayoshi24.ocr.PdfTestFixtures;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -17,35 +14,12 @@ class EmbeddedTextExtractorTest {
     private final EmbeddedTextExtractor extractor = new EmbeddedTextExtractor();
 
     // -----------------------------------------------------------------------
-    // Helper
-    // -----------------------------------------------------------------------
-
-    /** Creates an in-memory PDDocument whose pages each show the given texts. */
-    private PDDocument buildDocument(String... pageTexts) throws IOException {
-        PDDocument doc = new PDDocument();
-        for (String text : pageTexts) {
-            PDPage page = new PDPage();
-            doc.addPage(page);
-            if (text != null && !text.isEmpty()) {
-                try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
-                    cs.beginText();
-                    cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                    cs.newLineAtOffset(50, 700);
-                    cs.showText(text);
-                    cs.endText();
-                }
-            }
-        }
-        return doc;
-    }
-
-    // -----------------------------------------------------------------------
     // Test 1 — single word: word is captured, page is 0, bounding box positive
     // -----------------------------------------------------------------------
 
     @Test
     void singleWordHasCorrectWordAndPositiveBox() throws IOException {
-        try (PDDocument doc = buildDocument("Hello")) {
+        try (PDDocument doc = PdfTestFixtures.buildDocument("Hello")) {
             List<WordOccurrence> words = extractor.extract(doc, 0);
 
             assertEquals(1, words.size(), "Expected exactly one WordOccurrence");
@@ -72,7 +46,7 @@ class EmbeddedTextExtractorTest {
 
     @Test
     void spaceSeparatedWordsProduceSeparateOccurrences() throws IOException {
-        try (PDDocument doc = buildDocument("foo bar baz")) {
+        try (PDDocument doc = PdfTestFixtures.buildDocument("foo bar baz")) {
             List<WordOccurrence> words = extractor.extract(doc, 0);
 
             assertEquals(3, words.size(), "Three space-separated tokens should yield three occurrences");
@@ -89,7 +63,7 @@ class EmbeddedTextExtractorTest {
     @Test
     void extractFromSecondPageReturnsPageIndex1() throws IOException {
         // Page 0 has different text so any cross-page bleed would be obvious.
-        try (PDDocument doc = buildDocument("PageZero", "PageOne")) {
+        try (PDDocument doc = PdfTestFixtures.buildDocument("PageZero", "PageOne")) {
             List<WordOccurrence> words = extractor.extract(doc, 1);
 
             assertFalse(words.isEmpty(), "Should find words on the second page");
@@ -109,7 +83,7 @@ class EmbeddedTextExtractorTest {
     @Test
     void blankPageReturnsEmptyList() throws IOException {
         // Pass an empty string so buildDocument creates a page with no content.
-        try (PDDocument doc = buildDocument("")) {
+        try (PDDocument doc = PdfTestFixtures.buildDocument("")) {
             List<WordOccurrence> words = extractor.extract(doc, 0);
 
             assertNotNull(words, "Result list must not be null");
