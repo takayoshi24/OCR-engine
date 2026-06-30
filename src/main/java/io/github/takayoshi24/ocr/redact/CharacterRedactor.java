@@ -15,6 +15,8 @@ class CharacterRedactor {
     private static final float PAD_X = 2f;
     private static final float PAD_Y = 8f;
 
+    private record ScanResult(COSArray out, float xAfter, boolean changed) {}
+
     /**
      * Walk a Tj string character-by-character.  Characters whose user-space X falls
      * inside a redaction zone are replaced with a TJ numeric advance (so surrounding
@@ -34,38 +36,12 @@ class CharacterRedactor {
             return overlap ? List.of() : List.of(str, Operator.getOperator("Tj"));
         }
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(raw);
-        COSArray out = new COSArray();
-        ByteArrayOutputStream kept = new ByteArrayOutputStream();
-        float x = tm[4];
-        boolean changed = false;
+        ScanResult result = scanString(raw, font, fontSize, tc, tw, th, tm[0], tm[4], tm[5], zones);
+        tm[4] = result.xAfter();
 
-        while (bis.available() > 0) {
-            int pos = raw.length - bis.available();
-            int code;
-            try { code = font.readCode(bis); } catch (Exception e) { break; }
-            int posAfter = raw.length - bis.available();
-            byte[] charRaw = Arrays.copyOfRange(raw, pos, posAfter);
-
-            float glyphW  = glyphWidth(font, code);
-            float advance = charAdvance(glyphW, code, fontSize, tc, tw, th, tm[0]);
-
-            if (inZone(x, tm[5], zones)) {
-                changed = true;
-                if (kept.size() > 0) { out.add(new COSString(kept.toByteArray())); kept.reset(); }
-                out.add(new COSFloat(-glyphW));
-            } else {
-                try { kept.write(charRaw); } catch (Exception ignored) {}
-            }
-            x += advance;
-        }
-        if (kept.size() > 0) out.add(new COSString(kept.toByteArray()));
-
-        tm[4] = x;
-
-        if (!changed) return List.of(str, Operator.getOperator("Tj"));
-        if (out.size() == 0) return List.of();
-        return List.of(out, Operator.getOperator("TJ"));
+        if (!result.changed()) return List.of(str, Operator.getOperator("Tj"));
+        if (result.out().size() == 0) return List.of();
+        return List.of(result.out(), Operator.getOperator("TJ"));
     }
 
     /**
@@ -88,31 +64,10 @@ class CharacterRedactor {
 
         for (COSBase elem : arr) {
             if (elem instanceof COSString str) {
-                byte[] raw = str.getBytes();
-                ByteArrayInputStream bis = new ByteArrayInputStream(raw);
-                ByteArrayOutputStream kept = new ByteArrayOutputStream();
-
-                while (bis.available() > 0) {
-                    int pos = raw.length - bis.available();
-                    int code;
-                    try { code = font.readCode(bis); } catch (Exception e) { break; }
-                    int posAfter = raw.length - bis.available();
-                    byte[] charRaw = Arrays.copyOfRange(raw, pos, posAfter);
-
-                    float glyphW  = glyphWidth(font, code);
-                    float advance = charAdvance(glyphW, code, fontSize, tc, tw, th, tm[0]);
-
-                    if (inZone(x, tm[5], zones)) {
-                        changed = true;
-                        if (kept.size() > 0) { out.add(new COSString(kept.toByteArray())); kept.reset(); }
-                        out.add(new COSFloat(-glyphW));
-                    } else {
-                        try { kept.write(charRaw); } catch (Exception ignored) {}
-                    }
-                    x += advance;
-                }
-                if (kept.size() > 0) out.add(new COSString(kept.toByteArray()));
-
+                ScanResult result = scanString(str.getBytes(), font, fontSize, tc, tw, th, tm[0], x, tm[5], zones);
+                result.out().forEach(out::add);
+                x = result.xAfter();
+                if (result.changed()) changed = true;
             } else if (elem instanceof COSNumber num) {
                 x += -num.floatValue() / 1000f * fontSize * tm[0] * (th / 100f);
                 out.add(elem);
@@ -126,6 +81,38 @@ class CharacterRedactor {
         if (!changed) return List.of(arr, Operator.getOperator("TJ"));
         if (out.size() == 0) return List.of();
         return List.of(out, Operator.getOperator("TJ"));
+    }
+
+    private ScanResult scanString(byte[] raw, PDFont font, float fontSize,
+                                  float tc, float tw, float th, float tmA,
+                                  float x, float y, List<WordOccurrence> zones) {
+        ByteArrayInputStream bis = new ByteArrayInputStream(raw);
+        COSArray out = new COSArray();
+        ByteArrayOutputStream kept = new ByteArrayOutputStream();
+        boolean changed = false;
+
+        while (bis.available() > 0) {
+            int pos = raw.length - bis.available();
+            int code;
+            try { code = font.readCode(bis); } catch (Exception e) { break; }
+            int posAfter = raw.length - bis.available();
+            byte[] charRaw = Arrays.copyOfRange(raw, pos, posAfter);
+
+            float glyphW  = glyphWidth(font, code);
+            float advance = charAdvance(glyphW, code, fontSize, tc, tw, th, tmA);
+
+            if (inZone(x, y, zones)) {
+                changed = true;
+                if (kept.size() > 0) { out.add(new COSString(kept.toByteArray())); kept.reset(); }
+                out.add(new COSFloat(-glyphW));
+            } else {
+                try { kept.write(charRaw); } catch (Exception ignored) {}
+            }
+            x += advance;
+        }
+        if (kept.size() > 0) out.add(new COSString(kept.toByteArray()));
+
+        return new ScanResult(out, x, changed);
     }
 
     private boolean inZone(float x, float y, List<WordOccurrence> zones) {
