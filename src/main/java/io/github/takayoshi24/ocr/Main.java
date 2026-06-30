@@ -1,6 +1,5 @@
 package io.github.takayoshi24.ocr;
 
-import io.github.takayoshi24.ocr.export.PdfExporter;
 import io.github.takayoshi24.ocr.extract.CompositeExtractor;
 import io.github.takayoshi24.ocr.extract.EmbeddedTextExtractor;
 import io.github.takayoshi24.ocr.extract.OcrTextExtractor;
@@ -37,7 +36,6 @@ public class Main {
         );
         WordFinder finder = new WordFinder(WordFinder.MatchMode.CASE_INSENSITIVE);
         Redactor redactor = new Redactor();
-        PdfExporter exporter = new PdfExporter();
 
         try (PdfDocument doc = loader.load(input)) {
             List<WordOccurrence> words = extractor.extractAll(doc.getPdDocument(), doc.getPageTypes());
@@ -47,7 +45,7 @@ public class Main {
                     redactions.size(), doc.getPdDocument().getNumberOfPages());
 
             redactor.redact(doc.getPdDocument(), redactions);
-            exporter.export(doc.getPdDocument(), output);
+            doc.getPdDocument().save(output.toFile());
 
             System.out.println("Saved: " + output);
         }
