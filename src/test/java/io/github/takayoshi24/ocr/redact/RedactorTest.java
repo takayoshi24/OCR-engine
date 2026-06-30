@@ -2,11 +2,13 @@ package io.github.takayoshi24.ocr.redact;
 
 import io.github.takayoshi24.ocr.extract.WordOccurrence;
 import io.github.takayoshi24.ocr.find.RedactionTarget;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -54,7 +56,7 @@ class RedactorTest {
             redactor.redact(doc, List.of(target(0)));
             doc.save(out.toFile());
         }
-        try (PDDocument reloaded = PDDocument.load(out.toFile())) {
+        try (PDDocument reloaded = Loader.loadPDF(out.toFile())) {
             assertEquals(1, reloaded.getNumberOfPages());
         }
     }
@@ -67,7 +69,7 @@ class RedactorTest {
             redactor.redact(doc, targets);
             doc.save(out.toFile());
         }
-        try (PDDocument reloaded = PDDocument.load(out.toFile())) {
+        try (PDDocument reloaded = Loader.loadPDF(out.toFile())) {
             assertEquals(1, reloaded.getNumberOfPages());
         }
     }
@@ -80,7 +82,7 @@ class RedactorTest {
             redactor.redact(doc, targets);
             doc.save(out.toFile());
         }
-        try (PDDocument reloaded = PDDocument.load(out.toFile())) {
+        try (PDDocument reloaded = Loader.loadPDF(out.toFile())) {
             assertEquals(2, reloaded.getNumberOfPages());
         }
     }
@@ -103,7 +105,7 @@ class RedactorTest {
             doc.addPage(page);
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
                 cs.beginText();
-                cs.setFont(PDType1Font.HELVETICA, 12);
+                cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
                 cs.newLineAtOffset(50, 700);
                 cs.showText("Hello");
                 cs.newLineAtOffset(100, 0); // World starts at x=150, y=700
@@ -124,7 +126,7 @@ class RedactorTest {
             doc.save(out.toFile());
         }
 
-        try (PDDocument reloaded = PDDocument.load(out.toFile())) {
+        try (PDDocument reloaded = Loader.loadPDF(out.toFile())) {
             String text = new PDFTextStripper().getText(reloaded);
             assertTrue(text.contains("Hello"),
                     "Non-redacted word must still be extractable, got: " + text);
@@ -145,8 +147,9 @@ class RedactorTest {
 
         // Compute zone coords using PDFBox's own font metrics so our estimates match
         // what the content stream will actually use.
-        float helloSpaceW = PDType1Font.HELVETICA.getStringWidth("Hello ") / 1000f * fontSize;
-        float secretW     = PDType1Font.HELVETICA.getStringWidth("secret") / 1000f * fontSize;
+        PDType1Font helvetica = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+        float helloSpaceW = helvetica.getStringWidth("Hello ") / 1000f * fontSize;
+        float secretW     = helvetica.getStringWidth("secret") / 1000f * fontSize;
         float secretX     = 50f + helloSpaceW;
         float boxY        = 700f - fontSize * 0.3f;
         float boxH        = fontSize * 1.5f;
@@ -157,7 +160,7 @@ class RedactorTest {
             // Emit the entire phrase as ONE Tj — the failing case in the previous approach.
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
                 cs.beginText();
-                cs.setFont(PDType1Font.HELVETICA, fontSize);
+                cs.setFont(helvetica, fontSize);
                 cs.newLineAtOffset(50, 700);
                 cs.showText("Hello secret World");
                 cs.endText();
@@ -168,7 +171,7 @@ class RedactorTest {
             doc.save(out.toFile());
         }
 
-        try (PDDocument reloaded = PDDocument.load(out.toFile())) {
+        try (PDDocument reloaded = Loader.loadPDF(out.toFile())) {
             String text = new PDFTextStripper().getText(reloaded);
             assertTrue(text.contains("Hello"),   "Hello must remain selectable");
             assertTrue(text.contains("World"),   "World must remain selectable");

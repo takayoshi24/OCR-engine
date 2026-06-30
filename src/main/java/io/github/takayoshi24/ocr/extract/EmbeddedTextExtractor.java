@@ -15,9 +15,8 @@ public class EmbeddedTextExtractor implements TextExtractor {
     public List<WordOccurrence> extract(PDDocument document, int pageIndex) throws IOException {
         List<WordOccurrence> results = new ArrayList<>();
 
-        // In PDFBox 2.x, TextPosition.getY() stores reading-order Y from the top
-        // (not PDF Y from the bottom). To recover the PDF baseline Y from the bottom
-        // we compute: pageH - pos.getY().
+        // TextPosition.getY() stores reading-order Y from the top of the page,
+        // not PDF Y from the bottom. To recover PDF baseline Y: pageH - pos.getY().
         PDPage page = document.getPage(pageIndex);
         final float pageH = page.getBBox().getHeight();
 

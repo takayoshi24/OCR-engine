@@ -1,9 +1,11 @@
 package io.github.takayoshi24.ocr;
 
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -24,7 +26,7 @@ class MainTest {
             pdDoc.addPage(page);
             try (PDPageContentStream cs = new PDPageContentStream(pdDoc, page)) {
                 cs.beginText();
-                cs.setFont(PDType1Font.HELVETICA, 12);
+                cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
                 cs.newLineAtOffset(50, 700);
                 cs.showText(text);
                 cs.endText();
@@ -49,7 +51,7 @@ class MainTest {
 
         assertTrue(output.toFile().exists(), "Output file should exist after redaction");
         // Verify the output is a valid PDF that can be reloaded
-        try (PDDocument result = PDDocument.load(output.toFile())) {
+        try (PDDocument result = Loader.loadPDF(output.toFile())) {
             assertEquals(1, result.getNumberOfPages(), "Output PDF should have 1 page");
         }
     }
@@ -69,7 +71,7 @@ class MainTest {
         });
 
         assertTrue(output.toFile().exists(), "Output file should exist even with zero redactions");
-        try (PDDocument result = PDDocument.load(output.toFile())) {
+        try (PDDocument result = Loader.loadPDF(output.toFile())) {
             assertEquals(1, result.getNumberOfPages(), "Output PDF should have 1 page");
         }
     }
@@ -90,7 +92,7 @@ class MainTest {
         });
 
         assertTrue(output.toFile().exists(), "Output file should exist after multi-target redaction");
-        try (PDDocument result = PDDocument.load(output.toFile())) {
+        try (PDDocument result = Loader.loadPDF(output.toFile())) {
             assertEquals(1, result.getNumberOfPages(), "Output PDF should have 1 page");
         }
     }
