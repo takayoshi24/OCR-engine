@@ -1,11 +1,8 @@
 package io.github.takayoshi24.ocr.extract;
 
+import io.github.takayoshi24.ocr.PdfTestFixtures;
 import io.github.takayoshi24.ocr.loader.PageType;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,30 +21,9 @@ class CompositeExtractorTest {
         extractor = new CompositeExtractor(new EmbeddedTextExtractor(), new OcrTextExtractor("bogus-path"));
     }
 
-    // Helper: build an in-memory PDDocument with one page containing the given text.
-    private PDDocument singlePageDoc(String text) throws IOException {
-        PDDocument doc = new PDDocument();
-        addPage(doc, text);
-        return doc;
-    }
-
-    private void addPage(PDDocument doc, String text) throws IOException {
-        PDPage page = new PDPage();
-        doc.addPage(page);
-        if (!text.isEmpty()) {
-            try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
-                cs.beginText();
-                cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                cs.newLineAtOffset(50, 700);
-                cs.showText(text);
-                cs.endText();
-            }
-        }
-    }
-
     @Test
     void singleTextPage_returnsNonEmptyListContainingWrittenWord() throws IOException {
-        try (PDDocument doc = singlePageDoc("Hello")) {
+        try (PDDocument doc = PdfTestFixtures.buildDocument("Hello")) {
             List<WordOccurrence> results = extractor.extractAll(doc, List.of(PageType.TEXT));
 
             assertFalse(results.isEmpty(), "Expected at least one word from a TEXT page");
@@ -61,8 +37,8 @@ class CompositeExtractorTest {
     @Test
     void twoTextPages_returnsCombinedWordsWithCorrectPageIndices() throws IOException {
         try (PDDocument doc = new PDDocument()) {
-            addPage(doc, "Alpha");
-            addPage(doc, "Beta");
+            PdfTestFixtures.addPage(doc,"Alpha");
+            PdfTestFixtures.addPage(doc,"Beta");
 
             List<WordOccurrence> results = extractor.extractAll(
                 doc, List.of(PageType.TEXT, PageType.TEXT)
@@ -84,7 +60,7 @@ class CompositeExtractorTest {
 
     @Test
     void emptyPageTypeList_returnsEmptyList() throws IOException {
-        try (PDDocument doc = singlePageDoc("Ignored")) {
+        try (PDDocument doc = PdfTestFixtures.buildDocument("Ignored")) {
             List<WordOccurrence> results = extractor.extractAll(doc, List.of());
 
             assertTrue(results.isEmpty(), "Expected empty list when no page types are provided");
