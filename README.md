@@ -11,7 +11,7 @@ them — both visually (black box) and from the text layer.
 - Per-page auto-detection: text pages use the fast embedded path; image pages fall back to OCR
 - Three match modes: `EXACT`, `CASE_INSENSITIVE`, `REGEX`
 - Redaction removes text from the content stream *and* paints a black rectangle — the text cannot be recovered by copy-paste or PDF search
-- Usable as a CLI tool or a Spring Boot REST API
+- Usable as a CLI tool, a Spring Boot REST API, or a browser-based web UI
 
 ## Requirements
 
@@ -45,7 +45,7 @@ Tesseract data path defaults to `/usr/share/tesseract-ocr/4.00/tessdata`. Overri
 TESSDATA_PREFIX=/path/to/tessdata java -jar ...
 ```
 
-## REST API usage
+## REST API / Web UI
 
 Start the server:
 
@@ -53,13 +53,13 @@ Start the server:
 java -jar target/OCR-engine-1.0-SNAPSHOT.jar
 ```
 
-The server listens on port 8080 by default.
+The server listens on port 8080 by default. Open `http://localhost:8080` in a browser to use the drag-and-drop web UI — upload a PDF, enter words to redact, and download the result.
 
 ### `POST /api/process`
 
 | Parameter | Type            | Required | Description                                      |
 |-----------|-----------------|----------|--------------------------------------------------|
-| `file`    | multipart/form  | yes      | Input PDF                                        |
+| `file`    | multipart/form  | yes      | Input PDF (max 100 MB)                           |
 | `words`   | string          | no       | Comma-separated list of words to redact          |
 | `mode`    | string          | no       | `EXACT`, `CASE_INSENSITIVE` (default), or `REGEX`|
 
@@ -101,12 +101,11 @@ src/main/java/io/github/takayoshi24/ocr/
 ├── find/
 │   ├── WordFinder.java          # Matches targets against occurrences
 │   └── RedactionTarget.java
-├── redact/
-│   ├── Redactor.java            # Page orchestration
-│   ├── ContentStreamFilter.java # PDF content stream rewriting
-│   └── CharacterRedactor.java   # Glyph-level suppression
-└── export/
-    └── PdfExporter.java         # Saves output PDF
+└── redact/
+    ├── Redactor.java            # Page orchestration
+    ├── ContentStreamFilter.java # PDF content stream rewriting
+    ├── CharacterRedactor.java   # Glyph-level suppression
+    └── TextRenderState.java     # Tracks active font/matrix during stream parsing
 ```
 
 ## Dependencies
