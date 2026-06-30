@@ -100,9 +100,9 @@ class ContentStreamFilter {
                         buf.remove(buf.size()-1);
                         flush(filtered, buf);
                         PDFont font = lookupFont(res, currentFontName);
-                        // redactString updates tm[4] as a side effect so the next
-                        // operator sees the correct text position.
-                        filtered.addAll(cr.redactString(str, font, currentFontSize, tc, tw, th, tm, zones));
+                        var r = cr.redactString(str, font, currentFontSize, tc, tw, th, tm, zones);
+                        filtered.addAll(r.tokens());
+                        tm[4] = r.newX();
                     } else {
                         flush(filtered, buf); filtered.add(op);
                     }
@@ -112,7 +112,9 @@ class ContentStreamFilter {
                         buf.remove(buf.size()-1);
                         flush(filtered, buf);
                         PDFont font = lookupFont(res, currentFontName);
-                        filtered.addAll(cr.redactArray(arr, font, currentFontSize, tc, tw, th, tm, zones));
+                        var r = cr.redactArray(arr, font, currentFontSize, tc, tw, th, tm, zones);
+                        filtered.addAll(r.tokens());
+                        tm[4] = r.newX();
                     } else {
                         flush(filtered, buf); filtered.add(op);
                     }
@@ -127,7 +129,9 @@ class ContentStreamFilter {
                         flush(filtered, buf);
                         PDFont font = lookupFont(res, currentFontName);
                         filtered.add(Operator.getOperator("T*"));
-                        filtered.addAll(cr.redactString(str, font, currentFontSize, tc, tw, th, tm, zones));
+                        var r = cr.redactString(str, font, currentFontSize, tc, tw, th, tm, zones);
+                        filtered.addAll(r.tokens());
+                        tm[4] = r.newX();
                     } else {
                         flush(filtered, buf); filtered.add(op);
                     }
@@ -145,7 +149,9 @@ class ContentStreamFilter {
                         filtered.add(ac); filtered.add(Operator.getOperator("Tc"));
                         filtered.add(Operator.getOperator("T*"));
                         PDFont font = lookupFont(res, currentFontName);
-                        filtered.addAll(cr.redactString(str, font, currentFontSize, tc, tw, th, tm, zones));
+                        var r = cr.redactString(str, font, currentFontSize, tc, tw, th, tm, zones);
+                        filtered.addAll(r.tokens());
+                        tm[4] = r.newX();
                     } else {
                         flush(filtered, buf); filtered.add(op);
                     }
