@@ -52,7 +52,7 @@ class CompositeExtractorTest {
 
             assertFalse(results.isEmpty(), "Expected at least one word from a TEXT page");
             assertTrue(
-                results.stream().anyMatch(w -> w.word.equals("Hello")),
+                results.stream().anyMatch(w -> w.word().equals("Hello")),
                 "Expected the word 'Hello' to appear in results"
             );
         }
@@ -69,15 +69,15 @@ class CompositeExtractorTest {
             );
 
             // Words from both pages must be present
-            assertTrue(results.stream().anyMatch(w -> w.page == 0),
+            assertTrue(results.stream().anyMatch(w -> w.page() == 0),
                 "Expected at least one word with page index 0");
-            assertTrue(results.stream().anyMatch(w -> w.page == 1),
+            assertTrue(results.stream().anyMatch(w -> w.page() == 1),
                 "Expected at least one word with page index 1");
 
             // Both words must appear somewhere in the results
-            assertTrue(results.stream().anyMatch(w -> w.word.equals("Alpha")),
+            assertTrue(results.stream().anyMatch(w -> w.word().equals("Alpha")),
                 "Expected 'Alpha' in results");
-            assertTrue(results.stream().anyMatch(w -> w.word.equals("Beta")),
+            assertTrue(results.stream().anyMatch(w -> w.word().equals("Beta")),
                 "Expected 'Beta' in results");
         }
     }

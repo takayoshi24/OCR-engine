@@ -18,13 +18,13 @@ public class Redactor {
 
     public void redact(PDDocument document, List<RedactionTarget> targets) throws IOException {
         Map<Integer, List<RedactionTarget>> byPage = targets.stream()
-                .collect(Collectors.groupingBy(t -> t.occurrence.page));
+                .collect(Collectors.groupingBy(t -> t.occurrence().page()));
 
         for (Map.Entry<Integer, List<RedactionTarget>> entry : byPage.entrySet()) {
             int pageIndex = entry.getKey();
             PDPage page = document.getPage(pageIndex);
             List<WordOccurrence> zones = entry.getValue().stream()
-                    .map(t -> t.occurrence)
+                    .map(t -> t.occurrence())
                     .toList();
 
             // 1. Remove text operators for the redacted words so they can't be copied.
@@ -35,7 +35,7 @@ public class Redactor {
                     document, page, PDPageContentStream.AppendMode.APPEND, true)) {
                 cs.setNonStrokingColor(Color.BLACK);
                 for (WordOccurrence zone : zones) {
-                    cs.addRect(zone.x, zone.y, zone.width, zone.height);
+                    cs.addRect(zone.x(), zone.y(), zone.width(), zone.height());
                     cs.fill();
                 }
             }

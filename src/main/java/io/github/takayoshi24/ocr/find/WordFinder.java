@@ -36,14 +36,14 @@ public class WordFinder {
                 if (wc == 0 || i + wc > occurrences.size()) continue;
 
                 // Build the candidate phrase from wc consecutive same-page tokens
-                int page = occurrences.get(i).page;
+                int page = occurrences.get(i).page();
                 StringBuilder phrase = new StringBuilder();
                 boolean samePage = true;
                 for (int j = 0; j < wc; j++) {
                     WordOccurrence curr = occurrences.get(i + j);
-                    if (curr.page != page) { samePage = false; break; }
+                    if (curr.page() != page) { samePage = false; break; }
                     if (j > 0) phrase.append(' ');
-                    phrase.append(curr.word);
+                    phrase.append(curr.word());
                 }
                 if (!samePage) continue;
 
@@ -64,13 +64,13 @@ public class WordFinder {
         float x = Float.MAX_VALUE, top = -Float.MAX_VALUE, right = -Float.MAX_VALUE;
         float bottom = Float.MAX_VALUE;
         for (WordOccurrence w : words) {
-            x      = Math.min(x,      w.x);
-            bottom = Math.min(bottom, w.y);
-            right  = Math.max(right,  w.x + w.width);
-            top    = Math.max(top,    w.y + w.height);
+            x      = Math.min(x,      w.x());
+            bottom = Math.min(bottom, w.y());
+            right  = Math.max(right,  w.x() + w.width());
+            top    = Math.max(top,    w.y() + w.height());
         }
-        String text = words.stream().map(w -> w.word).collect(Collectors.joining(" "));
-        return new WordOccurrence(text, words.get(0).page, x, bottom, right - x, top - bottom);
+        String text = words.stream().map(w -> w.word()).collect(Collectors.joining(" "));
+        return new WordOccurrence(text, words.get(0).page(), x, bottom, right - x, top - bottom);
     }
 
     private Pattern toPattern(String target) {

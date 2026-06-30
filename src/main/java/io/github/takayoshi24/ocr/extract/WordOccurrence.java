@@ -1,22 +1,6 @@
 package io.github.takayoshi24.ocr.extract;
 
-public class WordOccurrence {
-
-    public final String word;
-    public final int page;
-    public final float x;
-    public final float y;
-    public final float width;
-    public final float height;
-
-    public WordOccurrence(String word, int page, float x, float y, float width, float height) {
-        this.word = word;
-        this.page = page;
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-    }
+public record WordOccurrence(String word, int page, float x, float y, float width, float height) {
 
     @Override
     public String toString() {

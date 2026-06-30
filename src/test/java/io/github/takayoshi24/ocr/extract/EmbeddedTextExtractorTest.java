@@ -51,18 +51,18 @@ class EmbeddedTextExtractorTest {
             assertEquals(1, words.size(), "Expected exactly one WordOccurrence");
 
             WordOccurrence w = words.get(0);
-            assertEquals("Hello", w.word);
-            assertEquals(0, w.page);
-            assertTrue(w.x > 0,      "x should be positive");
-            assertTrue(w.y > 0,      "y should be positive");
-            assertTrue(w.width > 0,  "width should be positive");
-            assertTrue(w.height > 0, "height should be positive");
+            assertEquals("Hello", w.word());
+            assertEquals(0, w.page());
+            assertTrue(w.x() > 0,      "x should be positive");
+            assertTrue(w.y() > 0,      "y should be positive");
+            assertTrue(w.width() > 0,  "width should be positive");
+            assertTrue(w.height() > 0, "height should be positive");
 
             // Text placed at newLineAtOffset(50, 700) on 792pt Letter page.
             // occurrence.y is PDF Y from bottom via getYDirAdj() — should be near 700,
             // not near 92 (which would be reading-order from top).
-            assertTrue(w.y > 500,
-                    "y should be PDF coords (bottom=0), expected ~700 but got " + w.y);
+            assertTrue(w.y() > 500,
+                    "y should be PDF coords (bottom=0), expected ~700 but got " + w.y());
         }
     }
 
@@ -76,9 +76,9 @@ class EmbeddedTextExtractorTest {
             List<WordOccurrence> words = extractor.extract(doc, 0);
 
             assertEquals(3, words.size(), "Three space-separated tokens should yield three occurrences");
-            assertEquals("foo", words.get(0).word);
-            assertEquals("bar", words.get(1).word);
-            assertEquals("baz", words.get(2).word);
+            assertEquals("foo", words.get(0).word());
+            assertEquals("bar", words.get(1).word());
+            assertEquals("baz", words.get(2).word());
         }
     }
 
@@ -94,10 +94,10 @@ class EmbeddedTextExtractorTest {
 
             assertFalse(words.isEmpty(), "Should find words on the second page");
             for (WordOccurrence w : words) {
-                assertEquals(1, w.page, "All occurrences must report page index 1");
+                assertEquals(1, w.page(), "All occurrences must report page index 1");
             }
             // Sanity: the extracted words come from page 1's text
-            assertTrue(words.stream().anyMatch(w -> w.word.contains("PageOne")),
+            assertTrue(words.stream().anyMatch(w -> w.word().contains("PageOne")),
                     "Expected to find the word 'PageOne' extracted from page index 1");
         }
     }
