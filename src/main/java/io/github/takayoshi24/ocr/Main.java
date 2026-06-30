@@ -27,7 +27,7 @@ public class Main {
         List<String> targets = Arrays.asList(args).subList(2, args.length);
 
         // Tesseract data path — override with TESSDATA_PREFIX env var if set
-        String tessData = System.getenv().getOrDefault("TESSDATA_PREFIX", "/usr/share/tesseract-ocr/4.00/tessdata");
+        String tessData = System.getenv().getOrDefault("TESSDATA_PREFIX", "tessdata");
 
         PdfLoader loader = new PdfLoader();
         CompositeExtractor extractor = new CompositeExtractor(
