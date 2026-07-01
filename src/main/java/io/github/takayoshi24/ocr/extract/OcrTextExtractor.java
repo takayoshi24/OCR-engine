@@ -7,19 +7,24 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class OcrTextExtractor implements TextExtractor {
 
     private static final int DPI = 300;
 
     private final Tesseract tesseract;
 
-    public OcrTextExtractor(String tessDataPath) {
+    @Autowired
+    public OcrTextExtractor(@Value("${tessdata.prefix:tessdata}") String tessDataPath) {
         tesseract = new Tesseract();
         tesseract.setDatapath(tessDataPath);
         tesseract.setPageSegMode(ITessAPI.TessPageSegMode.PSM_AUTO);

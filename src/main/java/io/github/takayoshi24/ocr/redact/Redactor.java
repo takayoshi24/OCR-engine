@@ -5,6 +5,7 @@ import io.github.takayoshi24.ocr.find.RedactionTarget;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.springframework.stereotype.Component;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Component
 public class Redactor {
 
     private final ContentStreamFilter filter = new ContentStreamFilter();
