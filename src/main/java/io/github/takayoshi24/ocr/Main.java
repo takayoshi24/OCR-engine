@@ -37,7 +37,7 @@ public class Main {
             Redactor redactor = ctx.getBean(Redactor.class);
 
             try (PdfDocument doc = loader.load(input)) {
-                List<WordOccurrence> words = extractor.extractAll(doc.getPdDocument(), doc.getPageTypes());
+                List<WordOccurrence> words = extractor.extractAll(doc.getPdDocument());
                 List<RedactionTarget> redactions = finder.find(words, targets);
 
                 System.out.printf("Found %d occurrence(s) to redact across %d page(s)%n",
