@@ -128,6 +128,25 @@ class WordFinderTest {
         assertTrue(ex.getMessage().contains("timed out"), "Expected timeout message, got: " + ex.getMessage());
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void regex_matchInterrupted_cancelsFutureAndThrowsIllegalArgumentException() throws Exception {
+        Future<Boolean> interruptedFuture = mock(Future.class);
+        when(interruptedFuture.get(anyLong(), any(TimeUnit.class))).thenThrow(new InterruptedException());
+        ExecutorService mockExecutor = mock(ExecutorService.class);
+        when(mockExecutor.submit(any(Callable.class))).thenReturn((Future) interruptedFuture);
+
+        WordFinder finder = new WordFinder(MatchMode.REGEX, 100, mockExecutor);
+        try {
+            assertThrows(IllegalArgumentException.class,
+                    () -> finder.find(List.of(occ("hello")), List.of("hello")));
+        } finally {
+            Thread.interrupted(); // clear the interrupt flag set by the implementation
+        }
+
+        verify(interruptedFuture).cancel(true);
+    }
+
     // -----------------------------------------------------------------------
     // Multiple targets
     // -----------------------------------------------------------------------
