@@ -7,7 +7,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,45 +16,37 @@ class PdfLoaderTest {
     Path tempDir;
 
     @Test
-    void textPageClassifiedAsText() throws IOException {
-        Path pdf = tempDir.resolve("text.pdf");
-        PdfTestFixtures.saveToFile("Hello World this is enough text to pass the threshold", pdf);
+    void load_singlePagePdf_returnsDocumentWithOnePage() throws IOException {
+        Path pdf = tempDir.resolve("single.pdf");
+        PdfTestFixtures.saveToFile("Hello World", pdf);
 
         try (PdfDocument doc = new PdfLoader().load(pdf)) {
-            List<PageType> types = doc.getPageTypes();
-            assertEquals(1, types.size());
-            assertEquals(PageType.TEXT, types.get(0));
+            assertEquals(1, doc.getPdDocument().getNumberOfPages());
         }
     }
 
     @Test
-    void blankPageClassifiedAsImage() throws IOException {
-        Path pdf = tempDir.resolve("blank.pdf");
-        PdfTestFixtures.saveToFile("", pdf);
-
-        try (PdfDocument doc = new PdfLoader().load(pdf)) {
-            List<PageType> types = doc.getPageTypes();
-            assertEquals(1, types.size());
-            assertEquals(PageType.IMAGE, types.get(0));
-        }
-    }
-
-    @Test
-    void multiPageMixedClassification() throws IOException {
-        Path pdf = tempDir.resolve("mixed.pdf");
+    void load_multiPagePdf_returnsDocumentWithAllPages() throws IOException {
+        Path pdf = tempDir.resolve("multi.pdf");
         try (PDDocument pdDoc = new PDDocument()) {
-            PdfTestFixtures.addPage(pdDoc, "Sufficient embedded text on this page");
-            PdfTestFixtures.addPage(pdDoc, "");  // blank / image-only
-            PdfTestFixtures.addPage(pdDoc, "Another text page with content");
+            PdfTestFixtures.addPage(pdDoc, "Page one");
+            PdfTestFixtures.addPage(pdDoc, "");
+            PdfTestFixtures.addPage(pdDoc, "Page three");
             pdDoc.save(pdf.toFile());
         }
 
         try (PdfDocument doc = new PdfLoader().load(pdf)) {
-            List<PageType> types = doc.getPageTypes();
-            assertEquals(3, types.size());
-            assertEquals(PageType.TEXT,  types.get(0));
-            assertEquals(PageType.IMAGE, types.get(1));
-            assertEquals(PageType.TEXT,  types.get(2));
+            assertEquals(3, doc.getPdDocument().getNumberOfPages());
+        }
+    }
+
+    @Test
+    void load_blankPage_returnsDocument() throws IOException {
+        Path pdf = tempDir.resolve("blank.pdf");
+        PdfTestFixtures.saveToFile("", pdf);
+
+        try (PdfDocument doc = new PdfLoader().load(pdf)) {
+            assertEquals(1, doc.getPdDocument().getNumberOfPages());
         }
     }
 

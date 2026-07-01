@@ -1,7 +1,6 @@
 package io.github.takayoshi24.ocr;
 
 import io.github.takayoshi24.ocr.extract.CompositeExtractor;
-import io.github.takayoshi24.ocr.loader.PageType;
 import io.github.takayoshi24.ocr.loader.PdfDocument;
 import io.github.takayoshi24.ocr.loader.PdfLoader;
 import io.github.takayoshi24.ocr.redact.Redactor;
@@ -104,8 +103,8 @@ class OcrControllerTest {
     private void stubLoader() throws Exception {
         PDDocument pdDoc = new PDDocument();
         pdDoc.addPage(new PDPage());
-        when(loader.load(any(Path.class))).thenReturn(new PdfDocument(pdDoc, List.of(PageType.TEXT)));
-        when(extractor.extractAll(any(), any())).thenReturn(List.of());
+        when(loader.load(any(Path.class))).thenReturn(new PdfDocument(pdDoc));
+        when(extractor.extractAll(any(PDDocument.class))).thenReturn(List.of());
     }
 
     private MockMultipartFile minimalPdfFile(String filename) throws IOException {

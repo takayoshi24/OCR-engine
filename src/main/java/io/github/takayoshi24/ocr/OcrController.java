@@ -75,7 +75,7 @@ public class OcrController {
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try (PdfDocument doc = loader.load(tempInput)) {
-                List<WordOccurrence> extracted = extractor.extractAll(doc.getPdDocument(), doc.getPageTypes());
+                List<WordOccurrence> extracted = extractor.extractAll(doc.getPdDocument());
                 if (!targets.isEmpty()) {
                     List<RedactionTarget> redactions = finder.find(extracted, targets);
                     redactor.redact(doc.getPdDocument(), redactions);
