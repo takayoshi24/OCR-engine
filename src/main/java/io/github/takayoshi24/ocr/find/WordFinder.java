@@ -69,7 +69,7 @@ public class WordFinder {
             right  = Math.max(right,  w.x() + w.width());
             top    = Math.max(top,    w.y() + w.height());
         }
-        String text = words.stream().map(w -> w.word()).collect(Collectors.joining(" "));
+        String text = words.stream().map(WordOccurrence::word).collect(Collectors.joining(" "));
         return new WordOccurrence(text, words.get(0).page(), x, bottom, right - x, top - bottom);
     }
 
