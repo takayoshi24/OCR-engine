@@ -4,6 +4,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 public class PdfDocument implements Closeable {
@@ -21,7 +22,7 @@ public class PdfDocument implements Closeable {
     }
 
     public List<PageType> getPageTypes() {
-        return pageTypes;
+        return Collections.unmodifiableList(pageTypes);
     }
 
     @Override
