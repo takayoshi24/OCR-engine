@@ -79,6 +79,26 @@ class OcrControllerTest {
                 .andExpect(content().string(not(containsString("at io.github"))));
     }
 
+    @Test
+    void nonPdfContent_returns415BeforeWritingToDisk() throws Exception {
+        MockMultipartFile notPdf = new MockMultipartFile(
+                "file", "evil.pdf", "application/pdf", "not a pdf at all".getBytes());
+        mockMvc.perform(multipart("/api/process").file(notPdf))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(content().string("File does not appear to be a PDF"));
+        verifyNoInteractions(loader);
+    }
+
+    @Test
+    void emptyFile_returns415() throws Exception {
+        MockMultipartFile empty = new MockMultipartFile(
+                "file", "empty.pdf", "application/pdf", new byte[0]);
+        mockMvc.perform(multipart("/api/process").file(empty))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(content().string("File does not appear to be a PDF"));
+        verifyNoInteractions(loader);
+    }
+
     // ---- helpers ----
 
     private void stubLoader() throws Exception {
