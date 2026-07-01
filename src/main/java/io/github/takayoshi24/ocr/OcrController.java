@@ -143,7 +143,14 @@ public class OcrController {
                     .body(pdf);
 
         } finally {
-            Files.deleteIfExists(tempInput);
+            try {
+                Files.deleteIfExists(tempInput);
+            } catch (java.nio.file.AccessDeniedException e) {
+                // On Windows a cancelled pipeline thread may still hold the file open via PDFBox.
+                // runPipeline deletes the file once PDFBox closes; deleteOnExit is the safety net.
+                tempInput.toFile().deleteOnExit();
+                log.debug("Temp file still locked, scheduled for deletion on exit: {}", tempInput);
+            }
         }
     }
 
@@ -160,6 +167,9 @@ public class OcrController {
                 redactor.redact(doc.getPdDocument(), redactions);
             }
             doc.getPdDocument().save(baos);
+        } finally {
+            // PDFBox has released its handles by here; safe to delete on any OS.
+            Files.deleteIfExists(tempInput);
         }
         log.info("Completed '{}' in {}ms", originalFilename, System.currentTimeMillis() - start);
         return baos.toByteArray();

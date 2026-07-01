@@ -17,6 +17,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -26,10 +27,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -179,6 +182,20 @@ class OcrControllerTest {
                         .param("words", "(?"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("Unclosed group")));
+    }
+
+    @Test
+    void afterSuccessfulRequest_tempFileIsDeleted() throws Exception {
+        ArgumentCaptor<Path> pathCaptor = ArgumentCaptor.forClass(Path.class);
+        PDDocument pdDoc = new PDDocument();
+        pdDoc.addPage(new PDPage());
+        when(loader.load(pathCaptor.capture())).thenReturn(new PdfDocument(pdDoc));
+        when(extractor.extractAll(any(PDDocument.class))).thenReturn(List.of());
+
+        mockMvc.perform(multipart("/api/process").file(minimalPdfFile("test.pdf")))
+                .andExpect(status().isOk());
+
+        assertFalse(Files.exists(pathCaptor.getValue()), "Temp file must be deleted after processing");
     }
 
     @Test
