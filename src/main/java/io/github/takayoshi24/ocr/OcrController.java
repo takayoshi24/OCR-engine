@@ -9,6 +9,8 @@ import io.github.takayoshi24.ocr.loader.PdfLoader;
 import io.github.takayoshi24.ocr.redact.Redactor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -26,6 +28,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @RestController
 public class OcrController {
@@ -35,11 +43,25 @@ public class OcrController {
     private final CompositeExtractor extractor;
     private final PdfLoader loader;
     private final Redactor redactor;
+    private final ExecutorService pipeline;
+    private final long timeoutSeconds;
 
-    OcrController(CompositeExtractor extractor, PdfLoader loader, Redactor redactor) {
-        this.extractor = extractor;
-        this.loader    = loader;
-        this.redactor  = redactor;
+    // Spring injection constructor — pool size and timeout are configurable via properties.
+    @Autowired
+    public OcrController(CompositeExtractor extractor, PdfLoader loader, Redactor redactor,
+                         @Value("${ocr.pipeline.thread-pool-size:4}") int threadPoolSize,
+                         @Value("${ocr.pipeline.timeout-seconds:300}") long timeoutSeconds) {
+        this(extractor, loader, redactor, Executors.newFixedThreadPool(threadPoolSize), timeoutSeconds);
+    }
+
+    // Package-private for testing — allows injecting a mock ExecutorService.
+    OcrController(CompositeExtractor extractor, PdfLoader loader, Redactor redactor,
+                  ExecutorService pipeline, long timeoutSeconds) {
+        this.extractor      = extractor;
+        this.loader         = loader;
+        this.redactor       = redactor;
+        this.pipeline       = pipeline;
+        this.timeoutSeconds = timeoutSeconds;
     }
 
     @PostMapping(value = "/api/process", produces = MediaType.APPLICATION_PDF_VALUE)
@@ -76,36 +98,59 @@ public class OcrController {
             }
 
             WordFinder finder = new WordFinder(matchMode);
+            String originalFilename = file.getOriginalFilename();
 
-            long start = System.currentTimeMillis();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try (PdfDocument doc = loader.load(tempInput)) {
-                log.info("Processing '{}': {} page(s), {} target(s), mode={}",
-                        file.getOriginalFilename(), doc.getPdDocument().getNumberOfPages(),
-                        targets.size(), matchMode);
-                List<WordOccurrence> extracted = extractor.extractAll(doc.getPdDocument());
-                if (!targets.isEmpty()) {
-                    List<RedactionTarget> redactions = finder.find(extracted, targets);
-                    redactor.redact(doc.getPdDocument(), redactions);
-                }
-                doc.getPdDocument().save(baos);
+            Future<byte[]> job = pipeline.submit(
+                    () -> runPipeline(tempInput, targets, finder, originalFilename));
+            byte[] pdf;
+            try {
+                pdf = job.get(timeoutSeconds, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                job.cancel(true);
+                log.warn("Request timed out after {}s for '{}'", timeoutSeconds, originalFilename);
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body(("Processing timed out after " + timeoutSeconds + "s — "
+                                + "try a smaller file or fewer pages").getBytes(StandardCharsets.UTF_8));
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof IOException ioEx) throw ioEx;
+                throw new IOException("Pipeline failed", cause);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Processing interrupted", e);
             }
-            log.info("Completed '{}' in {}ms", file.getOriginalFilename(),
-                    System.currentTimeMillis() - start);
 
-            String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "output.pdf";
             // Strip control characters and quotes to prevent header injection.
-            String safe = original.replaceAll("[\\r\\n\"]", "_");
-            String filename = "redacted_" + safe;
+            String safe = (originalFilename != null ? originalFilename : "output.pdf")
+                    .replaceAll("[\\r\\n\"]", "_");
 
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + "redacted_" + safe + "\"")
                     .contentType(MediaType.APPLICATION_PDF)
-                    .body(baos.toByteArray());
+                    .body(pdf);
 
         } finally {
             Files.deleteIfExists(tempInput);
         }
+    }
+
+    private byte[] runPipeline(Path tempInput, List<String> targets, WordFinder finder,
+                               String originalFilename) throws IOException {
+        long start = System.currentTimeMillis();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (PdfDocument doc = loader.load(tempInput)) {
+            log.info("Processing '{}': {} page(s), {} target(s)",
+                    originalFilename, doc.getPdDocument().getNumberOfPages(), targets.size());
+            List<WordOccurrence> extracted = extractor.extractAll(doc.getPdDocument());
+            if (!targets.isEmpty()) {
+                List<RedactionTarget> redactions = finder.find(extracted, targets);
+                redactor.redact(doc.getPdDocument(), redactions);
+            }
+            doc.getPdDocument().save(baos);
+        }
+        log.info("Completed '{}' in {}ms", originalFilename, System.currentTimeMillis() - start);
+        return baos.toByteArray();
     }
 
     @ExceptionHandler(Exception.class)

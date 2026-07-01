@@ -17,9 +17,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -34,7 +41,8 @@ class OcrControllerTest {
     void setUp() {
         loader    = mock(PdfLoader.class);
         extractor = mock(CompositeExtractor.class);
-        OcrController controller = new OcrController(extractor, loader, mock(Redactor.class));
+        OcrController controller = new OcrController(
+                extractor, loader, mock(Redactor.class), Executors.newCachedThreadPool(), 300);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -96,6 +104,23 @@ class OcrControllerTest {
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(content().string("File does not appear to be a PDF"));
         verifyNoInteractions(loader);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void pipelineTimeout_returns503WithHelpfulMessage() throws Exception {
+        Future<byte[]> timeoutFuture = mock(Future.class);
+        when(timeoutFuture.get(anyLong(), any(TimeUnit.class))).thenThrow(new TimeoutException());
+        ExecutorService mockPipeline = mock(ExecutorService.class);
+        when(mockPipeline.submit(any(Callable.class))).thenReturn((Future) timeoutFuture);
+
+        OcrController timeoutController = new OcrController(
+                extractor, loader, mock(Redactor.class), mockPipeline, 300);
+        MockMvc timeoutMvc = MockMvcBuilders.standaloneSetup(timeoutController).build();
+
+        timeoutMvc.perform(multipart("/api/process").file(minimalPdfFile("big.pdf")))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().string(containsString("timed out")));
     }
 
     // ---- helpers ----
