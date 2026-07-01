@@ -15,7 +15,11 @@ public class PdfLoader {
         try {
             return new PdfDocument(pdDocument);
         } catch (Exception e) {
-            pdDocument.close();
+            try {
+                pdDocument.close();
+            } catch (IOException closeEx) {
+                e.addSuppressed(closeEx);
+            }
             throw e;
         }
     }
