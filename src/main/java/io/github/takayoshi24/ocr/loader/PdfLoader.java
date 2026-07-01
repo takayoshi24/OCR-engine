@@ -3,12 +3,14 @@ package io.github.takayoshi24.ocr.loader;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class PdfLoader {
 
     // Pages with fewer characters than this threshold are treated as image-only
