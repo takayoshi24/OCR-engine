@@ -24,7 +24,7 @@ public class Redactor {
             int pageIndex = entry.getKey();
             PDPage page = document.getPage(pageIndex);
             List<WordOccurrence> zones = entry.getValue().stream()
-                    .map(t -> t.occurrence())
+                    .map(RedactionTarget::occurrence)
                     .toList();
 
             // 1. Remove text operators for the redacted words so they can't be copied.
