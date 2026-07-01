@@ -5,8 +5,16 @@ import io.github.takayoshi24.ocr.find.WordFinder.MatchMode;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
 
 class WordFinderTest {
 
@@ -102,6 +110,22 @@ class WordFinderTest {
         WordFinder finder = new WordFinder(MatchMode.REGEX);
         String pattern = "a".repeat(200);
         assertDoesNotThrow(() -> finder.find(List.of(occ("a")), List.of(pattern)));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void regex_matchTimesOut_throwsIllegalArgumentExceptionWithTimeoutMessage() throws Exception {
+        // Use a mock executor that simulates a TimeoutException so the test is fast
+        // and deterministic regardless of JVM regex optimizations.
+        Future<Boolean> timedOutFuture = mock(Future.class);
+        when(timedOutFuture.get(anyLong(), any(TimeUnit.class))).thenThrow(new TimeoutException());
+        ExecutorService mockExecutor = mock(ExecutorService.class);
+        when(mockExecutor.submit(any(Callable.class))).thenReturn((Future) timedOutFuture);
+
+        WordFinder finder = new WordFinder(MatchMode.REGEX, 100, mockExecutor);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> finder.find(List.of(occ("hello")), List.of("hello")));
+        assertTrue(ex.getMessage().contains("timed out"), "Expected timeout message, got: " + ex.getMessage());
     }
 
     // -----------------------------------------------------------------------

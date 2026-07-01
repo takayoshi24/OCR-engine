@@ -4,6 +4,12 @@ import io.github.takayoshi24.ocr.extract.WordOccurrence;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -15,10 +21,26 @@ public class WordFinder {
         REGEX
     }
 
+    // Shared daemon-thread pool — avoids creating a new thread per request.
+    private static final ExecutorService DEFAULT_EXECUTOR = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "regex-match");
+        t.setDaemon(true);
+        return t;
+    });
+
     private final MatchMode mode;
+    private final long regexTimeoutMs;
+    private final ExecutorService regexExecutor;
 
     public WordFinder(MatchMode mode) {
+        this(mode, 2_000, DEFAULT_EXECUTOR);
+    }
+
+    // Package-private for testing — allows injecting a mock executor or shorter timeout.
+    WordFinder(MatchMode mode, long regexTimeoutMs, ExecutorService regexExecutor) {
         this.mode = mode;
+        this.regexTimeoutMs = regexTimeoutMs;
+        this.regexExecutor = regexExecutor;
     }
 
     public List<RedactionTarget> find(List<WordOccurrence> occurrences, List<String> targets) {
@@ -47,7 +69,7 @@ public class WordFinder {
                 }
                 if (!samePage) continue;
 
-                if (patterns.get(p).matcher(phrase).find()) {
+                if (matchesWithTimeout(patterns.get(p), phrase.toString())) {
                     List<WordOccurrence> window = occurrences.subList(i, i + wc);
                     WordOccurrence occ = wc == 1 ? window.get(0) : merge(window);
                     results.add(new RedactionTarget(occ, targets.get(p)));
@@ -58,6 +80,22 @@ public class WordFinder {
         }
 
         return results;
+    }
+
+    private boolean matchesWithTimeout(Pattern pattern, String phrase) {
+        Future<Boolean> task = regexExecutor.submit(() -> pattern.matcher(phrase).find());
+        try {
+            return task.get(regexTimeoutMs, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            task.cancel(true);
+            throw new IllegalArgumentException(
+                    "Regex match timed out — pattern may cause catastrophic backtracking: " + pattern.pattern());
+        } catch (ExecutionException e) {
+            throw new IllegalArgumentException("Regex match failed", e.getCause());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalArgumentException("Regex match interrupted", e);
+        }
     }
 
     private WordOccurrence merge(List<WordOccurrence> words) {
@@ -79,8 +117,8 @@ public class WordFinder {
             // but not "Johnson"
             case EXACT -> Pattern.compile("\\b" + Pattern.quote(target) + "\\b");
             case CASE_INSENSITIVE -> Pattern.compile("\\b" + Pattern.quote(target) + "\\b", Pattern.CASE_INSENSITIVE);
-            // Limit regex length to reduce ReDoS exposure.
             case REGEX -> {
+                // Length check is a cheap first-pass guard before pattern compilation.
                 if (target.length() > 200) throw new IllegalArgumentException("Regex pattern too long: " + target);
                 yield Pattern.compile(target);
             }
