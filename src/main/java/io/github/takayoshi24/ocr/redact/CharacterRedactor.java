@@ -7,6 +7,7 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -26,7 +27,7 @@ class CharacterRedactor {
      * rather than mutating tm[4] — the caller is responsible for assigning it.
      */
     RedactResult redactString(COSString str, PDFont font, TextRenderState state,
-                              List<WordOccurrence> zones) {
+                              List<WordOccurrence> zones) throws IOException {
         byte[] raw = str.getBytes();
         float[] tm = state.tm();
 
@@ -53,7 +54,7 @@ class CharacterRedactor {
      * position in the result — the caller is responsible for assigning it.
      */
     RedactResult redactArray(COSArray arr, PDFont font, TextRenderState state,
-                             List<WordOccurrence> zones) {
+                             List<WordOccurrence> zones) throws IOException {
         float[] tm = state.tm();
 
         if (font == null) {
@@ -89,7 +90,7 @@ class CharacterRedactor {
     }
 
     private ScanResult scanString(byte[] raw, PDFont font, TextRenderState state,
-                                  float x, float y, List<WordOccurrence> zones) {
+                                  float x, float y, List<WordOccurrence> zones) throws IOException {
         float tmA = state.tm()[0];
         ByteArrayInputStream bis = new ByteArrayInputStream(raw);
         COSArray out = new COSArray();
@@ -99,7 +100,9 @@ class CharacterRedactor {
         while (bis.available() > 0) {
             int pos = raw.length - bis.available();
             int code;
-            try { code = font.readCode(bis); } catch (Exception e) { break; }
+            try { code = font.readCode(bis); } catch (Exception e) {
+                throw new IOException("Failed to read glyph code at byte offset " + pos, e);
+            }
             int posAfter = raw.length - bis.available();
             byte[] charRaw = Arrays.copyOfRange(raw, pos, posAfter);
 
