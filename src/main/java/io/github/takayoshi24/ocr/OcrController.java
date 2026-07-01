@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -121,12 +122,14 @@ public class OcrController {
                 throw new IOException("Processing interrupted", e);
             }
 
-            // Strip control characters and quotes to prevent header injection.
-            String safe = (originalFilename != null ? originalFilename : "output.pdf")
-                    .replaceAll("[\\r\\n\"]", "_");
+            String name = (originalFilename != null ? originalFilename : "output.pdf");
+            String disposition = ContentDisposition.attachment()
+                    .filename("redacted_" + name, StandardCharsets.UTF_8)
+                    .build()
+                    .toString();
 
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + "redacted_" + safe + "\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, disposition)
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
 
