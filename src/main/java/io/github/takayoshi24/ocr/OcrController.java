@@ -8,6 +8,7 @@ import io.github.takayoshi24.ocr.loader.PdfDocument;
 import io.github.takayoshi24.ocr.loader.PdfLoader;
 import io.github.takayoshi24.ocr.redact.Redactor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,6 +44,13 @@ public class OcrController {
             @RequestParam(value = "words", defaultValue = "") String words,
             @RequestParam(value = "mode", defaultValue = "CASE_INSENSITIVE") String mode
     ) throws IOException {
+
+        byte[] magic = file.getInputStream().readNBytes(5);
+        if (magic.length < 5 || !new String(magic, StandardCharsets.US_ASCII).equals("%PDF-")) {
+            return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("File does not appear to be a PDF".getBytes(StandardCharsets.UTF_8));
+        }
 
         Path tempInput = Files.createTempFile("ocr-", ".pdf");
         try {
