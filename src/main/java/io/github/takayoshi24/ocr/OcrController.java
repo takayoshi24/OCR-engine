@@ -7,6 +7,8 @@ import io.github.takayoshi24.ocr.find.WordFinder;
 import io.github.takayoshi24.ocr.loader.PdfDocument;
 import io.github.takayoshi24.ocr.loader.PdfLoader;
 import io.github.takayoshi24.ocr.redact.Redactor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,6 +29,8 @@ import java.util.List;
 
 @RestController
 public class OcrController {
+
+    private static final Logger log = LoggerFactory.getLogger(OcrController.class);
 
     private final CompositeExtractor extractor;
     private final PdfLoader loader;
@@ -73,8 +77,12 @@ public class OcrController {
 
             WordFinder finder = new WordFinder(matchMode);
 
+            long start = System.currentTimeMillis();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try (PdfDocument doc = loader.load(tempInput)) {
+                log.info("Processing '{}': {} page(s), {} target(s), mode={}",
+                        file.getOriginalFilename(), doc.getPdDocument().getNumberOfPages(),
+                        targets.size(), matchMode);
                 List<WordOccurrence> extracted = extractor.extractAll(doc.getPdDocument());
                 if (!targets.isEmpty()) {
                     List<RedactionTarget> redactions = finder.find(extracted, targets);
@@ -82,6 +90,8 @@ public class OcrController {
                 }
                 doc.getPdDocument().save(baos);
             }
+            log.info("Completed '{}' in {}ms", file.getOriginalFilename(),
+                    System.currentTimeMillis() - start);
 
             String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "output.pdf";
             // Strip control characters and quotes to prevent header injection.
