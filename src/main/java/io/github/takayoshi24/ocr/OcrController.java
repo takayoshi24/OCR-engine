@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -54,7 +55,7 @@ public class OcrController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "words", defaultValue = "") String words,
             @RequestParam(value = "mode", defaultValue = "CASE_INSENSITIVE") String mode
-    ) throws Exception {
+    ) throws IOException {
 
         Path tempInput = Files.createTempFile("ocr-", ".pdf");
         try {
