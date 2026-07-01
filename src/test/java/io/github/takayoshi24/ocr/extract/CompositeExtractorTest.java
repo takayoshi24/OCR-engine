@@ -87,10 +87,32 @@ class CompositeExtractorTest {
         OcrTextExtractor mockOcr = mock(OcrTextExtractor.class);
         CompositeExtractor extractor = new CompositeExtractor(new EmbeddedTextExtractor(), mockOcr);
 
-        // "Hello World" = 10 chars → exactly at threshold → embedded path, no OCR
+        // "Hello World" → embedded path, no OCR
         try (PDDocument doc = PdfTestFixtures.buildDocument("Hello World")) {
             extractor.extractAll(doc);
             verifyNoInteractions(mockOcr);
         }
+    }
+
+    @Test
+    void pageWithNineNonSpaceChars_usesEmbeddedNotOcr() throws IOException {
+        // Regression: "ABCDE FGHI" has 9 non-space chars. The old PDFTextStripper metric
+        // counted the space too (total 10), routing to embedded. The new metric must also
+        // reach the threshold so the embedded path is taken.
+        WordOccurrence w1 = new WordOccurrence("ABCDE", 0, 0f, 0f, 50f, 10f);
+        WordOccurrence w2 = new WordOccurrence("FGHI",  0, 55f, 0f, 40f, 10f);
+
+        EmbeddedTextExtractor mockEmbedded = mock(EmbeddedTextExtractor.class);
+        OcrTextExtractor mockOcr = mock(OcrTextExtractor.class);
+        when(mockEmbedded.extract(any(PDDocument.class), anyInt())).thenReturn(List.of(w1, w2));
+
+        CompositeExtractor extractor = new CompositeExtractor(mockEmbedded, mockOcr);
+
+        try (PDDocument doc = new PDDocument()) {
+            doc.addPage(new org.apache.pdfbox.pdmodel.PDPage());
+            extractor.extractAll(doc);
+        }
+
+        verifyNoInteractions(mockOcr);
     }
 }
