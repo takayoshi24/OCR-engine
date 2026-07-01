@@ -9,6 +9,8 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -17,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 class ContentStreamFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(ContentStreamFilter.class);
 
     private final CharacterRedactor cr = new CharacterRedactor();
 
@@ -173,7 +177,12 @@ class ContentStreamFilter {
 
     private PDFont lookupFont(PDResources res, String name) {
         if (res == null || name == null) return null;
-        try { return res.getFont(COSName.getPDFName(name)); } catch (Exception e) { return null; }
+        try {
+            return res.getFont(COSName.getPDFName(name));
+        } catch (IOException e) {
+            log.warn("Font lookup failed for '{}', falling back to estimated advance: {}", name, e.getMessage());
+            return null;
+        }
     }
 
     private void flush(List<Object> out, List<Object> buf) {
