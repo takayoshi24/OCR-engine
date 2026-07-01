@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -73,7 +74,7 @@ public class OcrController {
                 return ResponseEntity.badRequest()
                         .contentType(MediaType.TEXT_PLAIN)
                         .body(("Invalid mode '" + mode + "'. Valid values: "
-                                + Arrays.toString(WordFinder.MatchMode.values())).getBytes());
+                                + Arrays.toString(WordFinder.MatchMode.values())).getBytes(StandardCharsets.UTF_8));
             }
 
             WordFinder finder = new WordFinder(matchMode);

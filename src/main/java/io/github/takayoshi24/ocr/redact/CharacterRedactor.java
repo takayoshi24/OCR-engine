@@ -111,7 +111,7 @@ class CharacterRedactor {
                 if (kept.size() > 0) { out.add(new COSString(kept.toByteArray())); kept.reset(); }
                 out.add(new COSFloat(-glyphW));
             } else {
-                try { kept.write(charRaw); } catch (Exception ignored) {}
+                kept.write(charRaw);
             }
             x += advance;
         }
