@@ -142,33 +142,11 @@ class OcrControllerTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void regexTimeout_returns400WithTimeoutMessage() throws Exception {
-        Future<byte[]> future = mock(Future.class);
-        when(future.get(anyLong(), any(TimeUnit.class)))
-                .thenThrow(new java.util.concurrent.ExecutionException(
-                        new IllegalArgumentException("Regex match timed out — pattern may cause catastrophic backtracking: (a+)+$")));
-        ExecutorService mockPipeline = mock(ExecutorService.class);
-        when(mockPipeline.submit(any(Callable.class))).thenReturn((Future) future);
-
-        OcrController controller = new OcrController(
-                extractor, loader, mock(Redactor.class), mockPipeline, 300);
-        MockMvc mvc = MockMvcBuilders.standaloneSetup(controller).build();
-
-        mvc.perform(multipart("/api/process")
-                        .file(minimalPdfFile("test.pdf"))
-                        .param("mode", "REGEX")
-                        .param("words", "(a+)+$"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("timed out")));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
     void invalidRegexPattern_returns400WithSyntaxErrorMessage() throws Exception {
         Future<byte[]> future = mock(Future.class);
         when(future.get(anyLong(), any(TimeUnit.class)))
                 .thenThrow(new java.util.concurrent.ExecutionException(
-                        new java.util.regex.PatternSyntaxException("Unclosed group", "(?", 0)));
+                        new IllegalArgumentException("Invalid regex: error parsing regexp")));
         ExecutorService mockPipeline = mock(ExecutorService.class);
         when(mockPipeline.submit(any(Callable.class))).thenReturn((Future) future);
 
@@ -181,7 +159,7 @@ class OcrControllerTest {
                         .param("mode", "REGEX")
                         .param("words", "(?"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("Unclosed group")));
+                .andExpect(content().string(containsString("Invalid regex")));
     }
 
     @Test
