@@ -77,6 +77,18 @@ class OcrControllerTest {
     }
 
     @Test
+    void filenameEndingInBackslash_contentDispositionIsWellFormed() throws Exception {
+        stubLoader();
+        // A filename ending in \ would produce an unterminated quoted-string ("redacted_report\")
+        // if sanitisation is done manually. The ContentDisposition builder must encode it safely.
+        mockMvc.perform(multipart("/api/process")
+                        .file(minimalPdfFile("report\\")))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("attachment;")))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, not(containsString("\\\""))));
+    }
+
+    @Test
     void loaderThrows_exceptionHandlerReturnsMessageWithoutStackTrace() throws Exception {
         when(loader.load(any(Path.class))).thenThrow(new IOException("disk full"));
         mockMvc.perform(multipart("/api/process")
