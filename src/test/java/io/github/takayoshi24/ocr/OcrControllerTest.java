@@ -13,8 +13,10 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -177,6 +179,23 @@ class OcrControllerTest {
                         .param("words", "(?"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("Unclosed group")));
+    }
+
+    @Test
+    void magicByteCheck_closesInputStreamAfterReading() throws Exception {
+        byte[] content = "not a pdf".getBytes();
+        InputStream spyStream = spy(new ByteArrayInputStream(content));
+        MockMultipartFile spyFile = new MockMultipartFile("file", "test.pdf", "application/pdf", content) {
+            @Override
+            public InputStream getInputStream() {
+                return spyStream;
+            }
+        };
+
+        mockMvc.perform(multipart("/api/process").file(spyFile))
+                .andExpect(status().isUnsupportedMediaType());
+
+        verify(spyStream).close();
     }
 
     // ---- helpers ----

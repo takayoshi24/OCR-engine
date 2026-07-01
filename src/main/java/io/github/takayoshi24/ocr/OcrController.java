@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -72,7 +73,10 @@ public class OcrController {
             @RequestParam(value = "mode", defaultValue = "CASE_INSENSITIVE") String mode
     ) throws IOException {
 
-        byte[] magic = file.getInputStream().readNBytes(5);
+        byte[] magic;
+        try (InputStream is = file.getInputStream()) {
+            magic = is.readNBytes(5);
+        }
         if (magic.length < 5 || !new String(magic, StandardCharsets.US_ASCII).equals("%PDF-")) {
             return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
                     .contentType(MediaType.TEXT_PLAIN)
