@@ -24,7 +24,9 @@ public class CompositeExtractor {
 
         for (int i = 0; i < document.getNumberOfPages(); i++) {
             List<WordOccurrence> embedded = embeddedExtractor.extract(document, i);
-            int charCount = embedded.stream().mapToInt(w -> w.word().length()).sum();
+            // +1 per token approximates inter-word spaces, matching the old
+            // PDFTextStripper.getText().trim().length() semantics that TEXT_THRESHOLD was tuned against.
+            int charCount = embedded.stream().mapToInt(w -> w.word().length() + 1).sum();
             List<WordOccurrence> pageWords = charCount >= TEXT_THRESHOLD ? embedded
                                                                          : ocrExtractor.extract(document, i);
             all.addAll(pageWords);
