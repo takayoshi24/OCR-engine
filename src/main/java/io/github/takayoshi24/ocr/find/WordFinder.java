@@ -93,6 +93,7 @@ public class WordFinder {
         } catch (ExecutionException e) {
             throw new IllegalArgumentException("Regex match failed", e.getCause());
         } catch (InterruptedException e) {
+            task.cancel(true);
             Thread.currentThread().interrupt();
             throw new IllegalArgumentException("Regex match interrupted", e);
         }
