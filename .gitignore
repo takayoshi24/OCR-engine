@@ -34,3 +34,6 @@ out/
 
 # Windows/bash crash dumps
 bash.exe.stackdump
+
+# Node / Tailwind CSS build tooling
+node_modules/
