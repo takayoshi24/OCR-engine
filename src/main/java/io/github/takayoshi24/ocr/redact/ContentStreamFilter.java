@@ -100,7 +100,7 @@ class ContentStreamFilter {
                         buf.remove(buf.size()-1);
                         flush(filtered, buf);
                         PDFont font = lookupFont(res, currentFontName);
-                        var r = cr.redactString(str, font, new TextRenderState(currentFontSize, tc, tw, th, tm), zones);
+                        var r = cr.redactString(str, font, new TextRenderState(currentFontSize, tc, tw, th, tm[0], tm[4], tm[5]), zones);
                         filtered.addAll(r.tokens());
                         tm[4] = r.newX();
                     } else {
@@ -112,7 +112,7 @@ class ContentStreamFilter {
                         buf.remove(buf.size()-1);
                         flush(filtered, buf);
                         PDFont font = lookupFont(res, currentFontName);
-                        var r = cr.redactArray(arr, font, new TextRenderState(currentFontSize, tc, tw, th, tm), zones);
+                        var r = cr.redactArray(arr, font, new TextRenderState(currentFontSize, tc, tw, th, tm[0], tm[4], tm[5]), zones);
                         filtered.addAll(r.tokens());
                         tm[4] = r.newX();
                     } else {
@@ -129,7 +129,7 @@ class ContentStreamFilter {
                         flush(filtered, buf);
                         PDFont font = lookupFont(res, currentFontName);
                         filtered.add(Operator.getOperator("T*"));
-                        var r = cr.redactString(str, font, new TextRenderState(currentFontSize, tc, tw, th, tm), zones);
+                        var r = cr.redactString(str, font, new TextRenderState(currentFontSize, tc, tw, th, tm[0], tm[4], tm[5]), zones);
                         filtered.addAll(r.tokens());
                         tm[4] = r.newX();
                     } else {
@@ -149,7 +149,7 @@ class ContentStreamFilter {
                         filtered.add(ac); filtered.add(Operator.getOperator("Tc"));
                         filtered.add(Operator.getOperator("T*"));
                         PDFont font = lookupFont(res, currentFontName);
-                        var r = cr.redactString(str, font, new TextRenderState(currentFontSize, tc, tw, th, tm), zones);
+                        var r = cr.redactString(str, font, new TextRenderState(currentFontSize, tc, tw, th, tm[0], tm[4], tm[5]), zones);
                         filtered.addAll(r.tokens());
                         tm[4] = r.newX();
                     } else {

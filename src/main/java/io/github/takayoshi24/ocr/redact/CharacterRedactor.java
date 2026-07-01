@@ -29,16 +29,15 @@ class CharacterRedactor {
     RedactResult redactString(COSString str, PDFont font, TextRenderState state,
                               List<WordOccurrence> zones) throws IOException {
         byte[] raw = str.getBytes();
-        float[] tm = state.tm();
 
         if (font == null) {
-            float avgAdv = 0.5f * state.fontSize() * tm[0] * (state.th() / 100f);
-            float newX = tm[4] + raw.length * avgAdv;
-            boolean overlap = inZone(tm[4], tm[5], zones);
+            float avgAdv = 0.5f * state.fontSize() * state.tmA() * (state.th() / 100f);
+            float newX = state.tmX() + raw.length * avgAdv;
+            boolean overlap = inZone(state.tmX(), state.tmY(), zones);
             return new RedactResult(overlap ? List.of() : List.of(str, Operator.getOperator("Tj")), newX);
         }
 
-        ScanResult result = scanString(raw, font, state, tm[4], tm[5], zones);
+        ScanResult result = scanString(raw, font, state, state.tmX(), state.tmY(), zones);
 
         List<Object> tokens;
         if (!result.changed()) tokens = List.of(str, Operator.getOperator("Tj"));
@@ -55,26 +54,24 @@ class CharacterRedactor {
      */
     RedactResult redactArray(COSArray arr, PDFont font, TextRenderState state,
                              List<WordOccurrence> zones) throws IOException {
-        float[] tm = state.tm();
-
         if (font == null) {
-            boolean anyOverlap = inZone(tm[4], tm[5], zones);
-            float newX = tm[4] + arr.size() * 0.5f * state.fontSize() * tm[0] * (state.th() / 100f);
+            boolean anyOverlap = inZone(state.tmX(), state.tmY(), zones);
+            float newX = state.tmX() + arr.size() * 0.5f * state.fontSize() * state.tmA() * (state.th() / 100f);
             return new RedactResult(anyOverlap ? List.of() : List.of(arr, Operator.getOperator("TJ")), newX);
         }
 
         COSArray out = new COSArray();
-        float x = tm[4];
+        float x = state.tmX();
         boolean changed = false;
 
         for (COSBase elem : arr) {
             if (elem instanceof COSString str) {
-                ScanResult result = scanString(str.getBytes(), font, state, x, tm[5], zones);
+                ScanResult result = scanString(str.getBytes(), font, state, x, state.tmY(), zones);
                 result.out().forEach(out::add);
                 x = result.xAfter();
                 if (result.changed()) changed = true;
             } else if (elem instanceof COSNumber num) {
-                x += -num.floatValue() / 1000f * state.fontSize() * tm[0] * (state.th() / 100f);
+                x += -num.floatValue() / 1000f * state.fontSize() * state.tmA() * (state.th() / 100f);
                 out.add(elem);
             } else {
                 out.add(elem);
@@ -91,7 +88,7 @@ class CharacterRedactor {
 
     private ScanResult scanString(byte[] raw, PDFont font, TextRenderState state,
                                   float x, float y, List<WordOccurrence> zones) throws IOException {
-        float tmA = state.tm()[0];
+        float tmA = state.tmA();
         ByteArrayInputStream bis = new ByteArrayInputStream(raw);
         COSArray out = new COSArray();
         ByteArrayOutputStream kept = new ByteArrayOutputStream();
