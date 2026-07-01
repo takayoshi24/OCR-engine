@@ -132,10 +132,29 @@ public class OcrController {
             }
 
             String name = (originalFilename != null ? originalFilename : "output.pdf");
-            String disposition = ContentDisposition.attachment()
-                    .filename("redacted_" + name, StandardCharsets.UTF_8)
-                    .build()
-                    .toString();
+            String baseName = "redacted_" + name;
+            // Traditional quoted-string for legacy clients: escape backslash and quote,
+            // strip control chars to prevent header injection.
+            String quotedName = baseName
+                    .replaceAll("[\\r\\n]", "_")
+                    .replace("\\", "\\\\")
+                    .replace("\"", "\\\"");
+            // Spring 6.x emits both an RFC 2047 filename="" and an RFC 5987 filename*=.
+            // Extract only the filename*= part — we supply our own clean filename fallback.
+            String rfc5987Param = Arrays.stream(
+                            ContentDisposition.attachment()
+                                    .filename(baseName, StandardCharsets.UTF_8)
+                                    .build()
+                                    .toString()
+                                    .split(";"))
+                    .map(String::trim)
+                    .filter(s -> s.startsWith("filename*="))
+                    .findFirst()
+                    .orElse(null);
+            // filename* takes precedence on RFC 6266-compliant clients; filename="" is the fallback.
+            String disposition = rfc5987Param != null
+                    ? "attachment; filename=\"" + quotedName + "\"; " + rfc5987Param
+                    : "attachment; filename=\"" + quotedName + "\"";
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, disposition)
