@@ -120,7 +120,7 @@ public class OcrController {
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof IOException ioEx) throw ioEx;
-                if (cause instanceof IllegalArgumentException || cause instanceof java.util.regex.PatternSyntaxException) {
+                if (cause instanceof IllegalArgumentException) {
                     return ResponseEntity.badRequest()
                             .contentType(MediaType.TEXT_PLAIN)
                             .body(cause.getMessage().getBytes(StandardCharsets.UTF_8));
